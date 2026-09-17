@@ -113,10 +113,10 @@ graph TD
   - [x] Airflow DAG status & log extraction tools
   - [x] dbt model & manifest lineage traversal tools
 
-- [ ] **Phase 8: LangGraph State & Node Graph Definition**
-  - [ ] `IncidentState` TypedDict definition
-  - [ ] Graph nodes: `triage`, `investigate_logs`, `analyze_schema`, `generate_rca`, `sandbox_test`, `human_approval`, `remediate`
-  - [ ] State persistence checkpointer
+- [x] **Phase 8: LangGraph State & Node Graph Definition**
+  - [x] `IncidentState` TypedDict definition
+  - [x] Graph nodes: `triage`, `investigate_logs`, `analyze_schema`, `inspect_data`, `generate_rca`
+  - [x] State persistence checkpointer (MemorySaver)
 
 - [ ] **Phase 9: Root Cause Analysis (RCA) Engine**
   - [ ] Structured RCA prompt templates
