@@ -108,10 +108,10 @@ graph TD
 - [x] **Phase 6: Incident Injection & Simulation Scripts**
   - [x] Automated script to inject simulated anomalies into live tables (`simulate_incident.py`)
 
-- [ ] **Phase 7: Core Read-Only Agent Tools**
-  - [ ] Postgres schema inspection & query execution tools
-  - [ ] Airflow DAG status & log extraction tools
-  - [ ] dbt model & manifest lineage traversal tools
+- [x] **Phase 7: Core Read-Only Agent Tools**
+  - [x] Postgres schema inspection & query execution tools
+  - [x] Airflow DAG status & log extraction tools
+  - [x] dbt model & manifest lineage traversal tools
 
 - [ ] **Phase 8: LangGraph State & Node Graph Definition**
   - [ ] `IncidentState` TypedDict definition
