@@ -105,8 +105,8 @@ graph TD
   - [x] Metric threshold assertion checks (null percentage, volume bounds)
   - [x] Anomaly emitter writing to `dataops.incidents`
 
-- [ ] **Phase 6: Incident Injection & Simulation Scripts**
-  - [ ] Automated script to inject simulated anomalies into live tables (`simulate_incident.py`)
+- [x] **Phase 6: Incident Injection & Simulation Scripts**
+  - [x] Automated script to inject simulated anomalies into live tables (`simulate_incident.py`)
 
 - [ ] **Phase 7: Core Read-Only Agent Tools**
   - [ ] Postgres schema inspection & query execution tools
