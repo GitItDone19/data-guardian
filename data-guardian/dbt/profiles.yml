@@ -1,0 +1,23 @@
+data_guardian_profile:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: data_guardian
+      password: guardian_pass
+      port: 5432
+      dbname: data_guardian_db
+      schema: public
+      threads: 4
+      keepalives_idle: 0
+    sandbox:
+      type: postgres
+      host: localhost
+      user: data_guardian
+      password: guardian_pass
+      port: 5432
+      dbname: data_guardian_db
+      schema: staging_sandbox
+      threads: 4
+      keepalives_idle: 0

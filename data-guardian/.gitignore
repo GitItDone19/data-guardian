@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.env.local
+.venv
+env/
+venv/
+ENV/
+
+# Testing & Caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# dbt artifacts
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# Large local raw data downloads (if any outside seed)
+*.parquet
+*.tar.gz

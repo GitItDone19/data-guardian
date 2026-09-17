@@ -1,0 +1,99 @@
+version: '3.8'
+
+x-airflow-common:
+  &airflow-common
+  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.9.2}
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-data_guardian}:${POSTGRES_PASSWORD:-guardian_pass}@postgres:5432/${POSTGRES_DB:-data_guardian_db}
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+    POSTGRES_USER: ${POSTGRES_USER:-data_guardian}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-guardian_pass}
+    POSTGRES_DB: ${POSTGRES_DB:-data_guardian_db}
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: 5432
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./airflow/config:/opt/airflow/config
+    - ./dbt:/opt/airflow/dbt
+    - ./data:/opt/airflow/data
+    - ./scripts:/opt/airflow/scripts
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: dataguardian_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-data_guardian}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-guardian_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-data_guardian_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-data_guardian} -d ${POSTGRES_DB:-data_guardian_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: dataguardian_airflow_init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate &&
+        airflow users create \
+          --username admin \
+          --firstname Data \
+          --lastname Guardian \
+          --role Admin \
+          --email admin@example.com \
+          --password admin || true
+    restart: on-failure
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: dataguardian_airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: dataguardian_airflow_scheduler
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:

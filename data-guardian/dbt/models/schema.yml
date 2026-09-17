@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Staging model for customer raw data."
+    columns:
+      - name: customer_id
+        description: "Primary key for a specific customer order instance."
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_orders
+    description: "Staging model for order header raw data."
+    columns:
+      - name: order_id
+        description: "Primary key for orders."
+        tests:
+          - unique
+          - not_null
+      - name: order_status
+        description: "Status of the order lifecycle."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['delivered', 'shipped', 'canceled', 'invoiced', 'processing', 'created', 'approved', 'unavailable']
+
+  - name: stg_payments
+    description: "Staging model for payment transactions raw data."
+    columns:
+      - name: order_id
+        description: "Foreign key linking payment to an order."
+        tests:
+          - not_null
+      - name: payment_value
+        description: "Total monetary amount for the payment item."
+        tests:
+          - not_null
+
+  - name: dim_customers
+    description: "Core customer dimension model with order history metrics."
+    columns:
+      - name: customer_id
+        description: "Primary key for customer dimension."
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+
+  - name: fact_orders
+    description: "Core order facts table combining order events and payment aggregates."
+    columns:
+      - name: order_id
+        description: "Primary key for order fact table."
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: "Foreign key linking order to dim_customers."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
