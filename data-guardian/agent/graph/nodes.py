@@ -170,72 +170,23 @@ def node_inspect_data(state: IncidentState) -> IncidentState:
     }
 
 
+from agent.services.rca_engine import generate_root_cause_analysis
+
+
 def node_generate_rca(state: IncidentState) -> IncidentState:
     """
     Node 5: Generate Root Cause Analysis (RCA)
-    Synthesizes logs, schema discrepancies, and data samples into an empirical root cause explanation.
+    Synthesizes logs, schema discrepancies, and data samples into an empirical,
+    validated Root Cause Analysis (RCA) report using the RCA Engine.
     """
-    failure_type = state.get("failure_type", "UNKNOWN")
-    target_table = state.get("target_table", "")
-    schema_evidence = state.get("schema_evidence", {})
-    data_evidence = state.get("data_evidence", {})
-
-    rca_narrative = ""
-    proposed_fix = ""
-    confidence = 0.95
-
-    if failure_type == "SCHEMA_DRIFT" or schema_evidence.get("has_schema_drift"):
-        missing = schema_evidence.get("missing_expected_columns", [])
-        existing = schema_evidence.get("existing_columns", [])
-        rca_narrative = (
-            f"Root Cause Analysis: Upstream Schema Drift detected on {target_table}. "
-            f"Expected column(s) {missing} are missing from the physical table. "
-            f"Found replacement column 'postal_code_drifted' in existing columns: {existing}."
-        )
-        proposed_fix = (
-            "Update staging model 'stg_customers.sql' to map 'postal_code_drifted' "
-            "alias back to 'customer_zip_code_prefix' or add backward-compatibility coalesce."
-        )
-
-    elif "orders" in target_table and "null" in state.get("raw_error", "").lower():
-        rca_narrative = (
-            f"Root Cause Analysis: Data Quality Corruption on {target_table}. "
-            f"High spike of NULL values in 'order_status' violating pipeline quality bounds. "
-            f"Corrupt sample rows identified: {len(data_evidence.get('corrupted_samples', []))} instances inspected."
-        )
-        proposed_fix = (
-            "Filter or impute 'order_status' in stg_orders.sql with default value 'unknown' "
-            "or quarantine null rows into an error dead-letter table."
-        )
-
-    elif "payments" in target_table:
-        rca_narrative = (
-            f"Root Cause Analysis: Duplicate Records in {target_table}. "
-            f"Duplicate webhook transactions violated composite key uniqueness (order_id, payment_sequential)."
-        )
-        proposed_fix = (
-            "Apply deduplication window function: ROW_NUMBER() OVER "
-            "(PARTITION BY order_id, payment_sequential ORDER BY payment_value DESC) in stg_payments.sql."
-        )
-
-    else:
-        rca_narrative = f"Root Cause Analysis: Pipeline task failed on {target_table}. Error: {state.get('raw_error')}"
-        proposed_fix = "Review task dependencies and retry after addressing underlying constraint violation."
-        confidence = 0.75
-
-    rca_report = {
-        "incident_id": state.get("incident_id"),
-        "failure_type": failure_type,
-        "target_table": target_table,
-        "root_cause": rca_narrative,
-        "proposed_remediation": proposed_fix,
-        "confidence_score": confidence
-    }
+    rca_model = generate_root_cause_analysis(state)
+    rca_dict = rca_model.model_dump()
 
     return {
         "status": "RCA_GENERATED",
-        "root_cause_analysis": rca_report,
-        "rca_narrative": rca_narrative,
-        "confidence_score": confidence,
-        "proposed_sql_fix": proposed_fix
+        "root_cause_analysis": rca_dict,
+        "rca_narrative": rca_model.root_cause_summary,
+        "confidence_score": rca_model.confidence_score,
+        "proposed_sql_fix": rca_model.recommended_fix.suggested_sql_or_action
     }
+

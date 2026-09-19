@@ -99,8 +99,10 @@ def test_node_generate_rca_for_null_spike():
 
     res = node_generate_rca(state)
     assert res["status"] == "RCA_GENERATED"
-    assert "Root Cause Analysis" in res["rca_narrative"]
-    assert "stg_orders.sql" in res["proposed_sql_fix"]
+    assert "order_status" in res["rca_narrative"]
+    assert "null" in res["rca_narrative"].lower()
+    assert "COALESCE" in res["proposed_sql_fix"]
+    assert "stg_orders.sql" in res["root_cause_analysis"]["recommended_fix"]["target_file"]
     assert res["confidence_score"] >= 0.90
 
 

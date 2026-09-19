@@ -118,9 +118,9 @@ graph TD
   - [x] Graph nodes: `triage`, `investigate_logs`, `analyze_schema`, `inspect_data`, `generate_rca`
   - [x] State persistence checkpointer (MemorySaver)
 
-- [ ] **Phase 9: Root Cause Analysis (RCA) Engine**
-  - [ ] Structured RCA prompt templates
-  - [ ] Evidence-backed empirical JSON output validation
+- [x] **Phase 9: Root Cause Analysis (RCA) Engine**
+  - [x] Structured RCA prompt templates
+  - [x] Evidence-backed empirical JSON output validation
 
 - [ ] **Phase 10: Code & Schema Fix Generator + Sandbox Tester**
   - [ ] LLM SQL/dbt model code patch generation
