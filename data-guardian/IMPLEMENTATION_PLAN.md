@@ -131,8 +131,8 @@ graph TD
   - [x] LangGraph `interrupt_before=["apply_approved_fix"]`
   - [x] Safe patch applicator tool & pipeline restart trigger
 
-- [ ] **Phase 12: FastAPI Management Backend**
-  - [ ] REST endpoints: `/pipelines/status`, `/incidents`, `/incidents/{id}/approve`, `/simulate`
+- [x] **Phase 12: FastAPI Management Backend**
+  - [x] REST endpoints: `/pipelines/status`, `/incidents`, `/incidents/{id}/approve`, `/simulate`
 
 - [ ] **Phase 13: Next.js Operational Dashboard**
   - [ ] Real-time pipeline health overview & metrics cards
