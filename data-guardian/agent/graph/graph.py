@@ -12,7 +12,9 @@ from agent.graph.nodes import (
     node_investigate_logs,
     node_analyze_schema,
     node_inspect_data,
-    node_generate_rca
+    node_generate_rca,
+    node_generate_fix,
+    node_test_sandbox
 )
 
 
@@ -23,20 +25,24 @@ def build_dataops_graph(checkpointer=None):
     # 1. Initialize StateGraph with our custom TypedDict
     workflow = StateGraph(IncidentState)
 
-    # 2. Add Reasoning & Tool Execution Nodes
+    # 2. Add Reasoning, Patch Generation & Sandbox Nodes
     workflow.add_node("triage", node_triage)
     workflow.add_node("investigate_logs", node_investigate_logs)
     workflow.add_node("analyze_schema", node_analyze_schema)
     workflow.add_node("inspect_data", node_inspect_data)
     workflow.add_node("generate_rca", node_generate_rca)
+    workflow.add_node("generate_fix", node_generate_fix)
+    workflow.add_node("test_sandbox", node_test_sandbox)
 
-    # 3. Define Sequential Reasoning Edges
+    # 3. Define Sequential Reasoning & Remediation Edges
     workflow.add_edge(START, "triage")
     workflow.add_edge("triage", "investigate_logs")
     workflow.add_edge("investigate_logs", "analyze_schema")
     workflow.add_edge("analyze_schema", "inspect_data")
     workflow.add_edge("inspect_data", "generate_rca")
-    workflow.add_edge("generate_rca", END)
+    workflow.add_edge("generate_rca", "generate_fix")
+    workflow.add_edge("generate_fix", "test_sandbox")
+    workflow.add_edge("test_sandbox", END)
 
     # 4. Compile with Checkpointer for persistent thread memory
     memory = checkpointer or MemorySaver()

@@ -190,3 +190,47 @@ def node_generate_rca(state: IncidentState) -> IncidentState:
         "proposed_sql_fix": rca_model.recommended_fix.suggested_sql_or_action
     }
 
+
+from agent.services.fix_generator import generate_model_patch, ModelPatchModel
+from agent.services.sandbox_tester import run_sandbox_validation
+
+
+def node_generate_fix(state: IncidentState) -> IncidentState:
+    """
+    Node 6: Generate Code Fix
+    Produces concrete, syntactically valid dbt model SQL code and a unified diff
+    addressing the identified root cause.
+    """
+    patch: ModelPatchModel = generate_model_patch(state)
+
+    return {
+        "status": "FIX_GENERATED",
+        "proposed_model_patch": patch.model_dump(),
+        "proposed_sql_fix": patch.patched_code
+    }
+
+
+def node_test_sandbox(state: IncidentState) -> IncidentState:
+    """
+    Node 7: Sandbox Verification
+    Deploys the generated patch into the isolated PostgreSQL `staging_sandbox` schema
+    and runs assertion checks to verify resolution before requesting human approval.
+    """
+    patch_dict = state.get("proposed_model_patch")
+    if not patch_dict:
+        patch_model = generate_model_patch(state)
+    else:
+        patch_model = ModelPatchModel(**patch_dict)
+
+    failure_type = state.get("failure_type", "UNKNOWN")
+    sandbox_result = run_sandbox_validation(patch_model, failure_type=failure_type)
+
+    new_status = "SANDBOX_VERIFIED" if sandbox_result.get("tests_passed") else "SANDBOX_TEST_FAILED"
+
+    return {
+        "status": new_status,
+        "sandbox_test_result": sandbox_result
+    }
+
+
+

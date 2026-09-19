@@ -107,7 +107,7 @@ def test_node_generate_rca_for_null_spike():
 
 
 def test_full_graph_execution_end_to_end():
-    """Verify end-to-end execution of the LangGraph state machine across all 5 nodes."""
+    """Verify end-to-end execution of the LangGraph state machine across all 7 nodes."""
     app = build_dataops_graph()
 
     initial_state: IncidentState = {
@@ -117,11 +117,19 @@ def test_full_graph_execution_end_to_end():
     }
 
     config = {"configurable": {"thread_id": "test_thread_001"}}
-    final_state = app.invoke(initial_state, config=config)
 
-    assert final_state["status"] == "RCA_GENERATED"
+    with patch("agent.services.sandbox_tester.execute_write_query", return_value={"status": "SUCCESS"}), \
+         patch("agent.services.sandbox_tester.execute_read_query", side_effect=[
+             {"status": "SUCCESS", "rows": [{"total": 100}]},
+             {"status": "SUCCESS", "rows": [{"zip_code": "01001", "city": "sao paulo", "state": "SP"}]}
+         ]):
+        final_state = app.invoke(initial_state, config=config)
+
+    assert final_state["status"] == "SANDBOX_VERIFIED"
     assert final_state["failure_type"] == "SCHEMA_DRIFT"
     assert final_state["target_table"] == "raw.customers"
     assert "schema_evidence" in final_state
     assert "root_cause_analysis" in final_state
-    assert final_state["confidence_score"] is not None
+    assert "proposed_model_patch" in final_state
+    assert "sandbox_test_result" in final_state
+    assert final_state["sandbox_test_result"]["tests_passed"] is True

@@ -149,3 +149,18 @@ def get_table_sample(table_name: str, schema: str = "raw", limit: int = 5, engin
 
     query = f"SELECT * FROM {schema}.{table_name} LIMIT {limit};"
     return execute_read_query(query, limit=limit, engine=engine)
+
+
+def execute_write_query(query: str, engine=None) -> Dict[str, Any]:
+    """
+    Executes a DDL or DML write query (e.g. for sandbox views/tables creation).
+    Commits the transaction upon completion.
+    """
+    engine = engine or get_engine()
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(query))
+            return {"status": "SUCCESS"}
+    except Exception as e:
+        return {"status": "ERROR", "error": _safe_str(e)}
+

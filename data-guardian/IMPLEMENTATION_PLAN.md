@@ -122,10 +122,10 @@ graph TD
   - [x] Structured RCA prompt templates
   - [x] Evidence-backed empirical JSON output validation
 
-- [ ] **Phase 10: Code & Schema Fix Generator + Sandbox Tester**
-  - [ ] LLM SQL/dbt model code patch generation
-  - [ ] Sandbox execution in `staging_sandbox` schema
-  - [ ] Validation against dbt tests
+- [x] **Phase 10: Code & Schema Fix Generator + Sandbox Tester**
+  - [x] LLM SQL/dbt model code patch generation
+  - [x] Sandbox execution in `staging_sandbox` schema
+  - [x] Validation against dbt tests
 
 - [ ] **Phase 11: Human-in-the-Loop (HITL) & Write Tools**
   - [ ] LangGraph `interrupt_before=["apply_approved_fix"]`
