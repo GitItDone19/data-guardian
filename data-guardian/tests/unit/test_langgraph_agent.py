@@ -107,13 +107,14 @@ def test_node_generate_rca_for_null_spike():
 
 
 def test_full_graph_execution_end_to_end():
-    """Verify end-to-end execution of the LangGraph state machine across all 7 nodes."""
+    """Verify end-to-end execution of the LangGraph state machine across all 10 nodes including HITL gate."""
     app = build_dataops_graph()
 
     initial_state: IncidentState = {
         "incident_id": "INC_E2E_001",
         "pipeline_name": "ecommerce_pipeline",
-        "raw_error": "Schema Drift: column postal_code_drifted appeared, customer_zip_code_prefix missing in raw.customers"
+        "raw_error": "Schema Drift: column postal_code_drifted appeared, customer_zip_code_prefix missing in raw.customers",
+        "human_approved": True  # Pre-approved for end-to-end verification
     }
 
     config = {"configurable": {"thread_id": "test_thread_001"}}
@@ -122,10 +123,13 @@ def test_full_graph_execution_end_to_end():
          patch("agent.services.sandbox_tester.execute_read_query", side_effect=[
              {"status": "SUCCESS", "rows": [{"total": 100}]},
              {"status": "SUCCESS", "rows": [{"zip_code": "01001", "city": "sao paulo", "state": "SP"}]}
-         ]):
+         ]), \
+         patch("agent.graph.nodes.apply_model_patch", return_value={"status": "SUCCESS"}), \
+         patch("agent.graph.nodes.record_incident_resolution", return_value={"status": "SUCCESS"}), \
+         patch("agent.graph.nodes.trigger_pipeline_recovery", return_value={"status": "SUCCESS"}):
         final_state = app.invoke(initial_state, config=config)
 
-    assert final_state["status"] == "SANDBOX_VERIFIED"
+    assert final_state["status"] == "RESOLVED"
     assert final_state["failure_type"] == "SCHEMA_DRIFT"
     assert final_state["target_table"] == "raw.customers"
     assert "schema_evidence" in final_state
@@ -133,3 +137,5 @@ def test_full_graph_execution_end_to_end():
     assert "proposed_model_patch" in final_state
     assert "sandbox_test_result" in final_state
     assert final_state["sandbox_test_result"]["tests_passed"] is True
+    assert "remediation_result" in final_state
+

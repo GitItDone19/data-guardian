@@ -233,4 +233,79 @@ def node_test_sandbox(state: IncidentState) -> IncidentState:
     }
 
 
+from agent.tools.remediation_tools import (
+    apply_model_patch,
+    record_incident_resolution,
+    trigger_pipeline_recovery
+)
+
+
+def node_human_approval_gate(state: IncidentState) -> IncidentState:
+    """
+    Node 8: Human Approval Gate
+    Determines if human approval has been granted.
+    If no decision has been provided yet (human_approved is None),
+    sets status to 'WAITING_FOR_APPROVAL'.
+    """
+    approved = state.get("human_approved")
+
+    if approved is True:
+        return {"status": "APPROVED"}
+    elif approved is False:
+        return {"status": "REJECTED"}
+    else:
+        return {"status": "WAITING_FOR_APPROVAL"}
+
+
+def node_apply_approved_fix(state: IncidentState) -> IncidentState:
+    """
+    Node 9: Apply Approved Fix
+    Safely writes the verified patch to the target dbt model with automatic backup,
+    triggers pipeline recovery, and marks the incident as RESOLVED.
+    """
+    patch = state.get("proposed_model_patch") or {}
+    target_file = patch.get("target_file", "dbt/models/staging/stg_customers.sql")
+    patched_code = patch.get("patched_code", state.get("proposed_sql_fix", ""))
+    incident_id = state.get("incident_id", "UNKNOWN_INCIDENT")
+    root_cause = state.get("rca_narrative", "Resolved by DataOps Agent")
+    pipeline_name = state.get("pipeline_name", "ecommerce_pipeline")
+
+    # 1. Apply patch with atomic backup
+    write_res = apply_model_patch(target_file, patched_code)
+
+    # 2. Trigger pipeline recovery
+    recovery_res = trigger_pipeline_recovery(pipeline_name)
+
+    # 3. Update database incident record
+    resolution_res = record_incident_resolution(
+        incident_id=incident_id,
+        root_cause=root_cause,
+        proposed_fix=f"Applied patch to {target_file}"
+    )
+
+    remediation_result = {
+        "patch_result": write_res,
+        "recovery_result": recovery_res,
+        "resolution_result": resolution_res
+    }
+
+    return {
+        "status": "RESOLVED",
+        "remediation_result": remediation_result
+    }
+
+
+def node_handle_rejection(state: IncidentState) -> IncidentState:
+    """
+    Node 10: Handle Rejection
+    Safely terminates the remediation workflow when human operator rejects the fix,
+    ensuring zero modification to production files.
+    """
+    return {
+        "status": "REJECTED",
+        "error_message": "Human operator rejected the proposed remediation plan."
+    }
+
+
+
 

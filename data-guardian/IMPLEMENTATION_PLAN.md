@@ -48,7 +48,7 @@ graph TD
 | **Agent Framework** | LangGraph + LangChain | Stateful graph execution, reasoning loops, tool routing, checkpointing, and HITL interrupts. |
 | **Protocol Layer** | Model Context Protocol (MCP) | Decouples data tools (DB inspector, log reader, dbt manifest reader) from LLM runtime logic. |
 | **Backend API** | FastAPI | REST endpoints for pipeline status, incident listing, triggering RCA, and approving fixes. |
-| **Dashboard** | Streamlit | Visual dashboard for pipeline health, incident viewer, interactive RCA reports, and approval portal. |
+| **Dashboard** | Next.js (React) | Modern responsive web portal for pipeline health, incident audit logs, interactive RCA reports, code diffs, and approval actions. |
 
 ---
 
@@ -127,17 +127,17 @@ graph TD
   - [x] Sandbox execution in `staging_sandbox` schema
   - [x] Validation against dbt tests
 
-- [ ] **Phase 11: Human-in-the-Loop (HITL) & Write Tools**
-  - [ ] LangGraph `interrupt_before=["apply_approved_fix"]`
-  - [ ] Safe patch applicator tool & pipeline restart trigger
+- [x] **Phase 11: Human-in-the-Loop (HITL) & Write Tools**
+  - [x] LangGraph `interrupt_before=["apply_approved_fix"]`
+  - [x] Safe patch applicator tool & pipeline restart trigger
 
 - [ ] **Phase 12: FastAPI Management Backend**
   - [ ] REST endpoints: `/pipelines/status`, `/incidents`, `/incidents/{id}/approve`, `/simulate`
 
-- [ ] **Phase 13: Streamlit Operational Dashboard**
-  - [ ] Real-time pipeline health overview
+- [ ] **Phase 13: Next.js Operational Dashboard**
+  - [ ] Real-time pipeline health overview & metrics cards
   - [ ] Incident audit log & LangGraph reasoning trace viewer
-  - [ ] RCA report viewer with interactive human approval/rejection buttons
+  - [ ] Interactive RCA report viewer with code diff viewer & human approval/rejection actions
 
 - [ ] **Phase 14: Model Context Protocol (MCP) Integration**
   - [ ] Expose Postgres, dbt, and Airflow toolsets as standard MCP servers

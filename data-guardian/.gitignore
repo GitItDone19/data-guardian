@@ -20,6 +20,7 @@ htmlcov/
 dbt/target/
 dbt/dbt_packages/
 dbt/logs/
+dbt/.backups/
 
 # IDE & OS files
 .vscode/
