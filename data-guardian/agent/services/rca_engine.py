@@ -208,7 +208,9 @@ def generate_root_cause_analysis(state: IncidentState) -> RCAReportModel:
     Attempts LLM generation if OPENAI_API_KEY is available and valid; otherwise
     seamlessly uses empirical synthesis to guarantee robust, accurate results.
     """
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY", "")
+    base_url = os.getenv("LLM_BASE_URL") or None
+    model_name = os.getenv("LLM_MODEL") or "gpt-4o-mini"
     use_llm = bool(api_key and not api_key.startswith("your_openai_") and len(api_key) > 20)
 
     if use_llm:
@@ -216,7 +218,16 @@ def generate_root_cause_analysis(state: IncidentState) -> RCAReportModel:
             from langchain_openai import ChatOpenAI
             from langchain_core.messages import SystemMessage, HumanMessage
 
-            llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, openai_api_key=api_key)
+            llm_kwargs = {
+                "model": model_name,
+                "temperature": 0.1,
+                "openai_api_key": api_key,
+                "request_timeout": 30
+            }
+            if base_url:
+                llm_kwargs["openai_api_base"] = base_url
+
+            llm = ChatOpenAI(**llm_kwargs)
 
             user_prompt = RCA_USER_PROMPT_TEMPLATE.format(
                 incident_id=state.get("incident_id", "UNKNOWN"),
