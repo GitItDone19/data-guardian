@@ -32,3 +32,8 @@ Thumbs.db
 # Large local raw data downloads (if any outside seed)
 *.parquet
 *.tar.gz
+
+# Frontend dependencies & build artifacts
+node_modules/
+.next/
+out/

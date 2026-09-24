@@ -134,14 +134,17 @@ graph TD
 - [x] **Phase 12: FastAPI Management Backend**
   - [x] REST endpoints: `/pipelines/status`, `/incidents`, `/incidents/{id}/approve`, `/simulate`
 
-- [ ] **Phase 13: Next.js Operational Dashboard**
-  - [ ] Real-time pipeline health overview & metrics cards
-  - [ ] Incident audit log & LangGraph reasoning trace viewer
-  - [ ] Interactive RCA report viewer with code diff viewer & human approval/rejection actions
+- [x] **Phase 13: Next.js Operational Dashboard**
+  - [x] Real-time pipeline health overview & metrics cards
+  - [x] Incident audit log & LangGraph reasoning trace viewer
+  - [x] Interactive RCA report viewer with code diff viewer & human approval/rejection actions
 
-- [ ] **Phase 14: Model Context Protocol (MCP) Integration**
-  - [ ] Expose Postgres, dbt, and Airflow toolsets as standard MCP servers
+- [x] **Phase 14: Model Context Protocol (MCP) Integration**
+  - [x] Expose Postgres, dbt, and Airflow toolsets as standard MCP servers (`postgres_server.py`, `dbt_server.py`, `airflow_server.py`)
+  - [x] Standard client configuration (`mcp/mcp_config.json`) for Claude Desktop, Cursor, and AI agents
+  - [x] Comprehensive automated unit test suite (`tests/unit/test_mcp_servers.py`) with 100% pass rate
 
-- [ ] **Phase 15: End-to-End Integration Testing & Documentation**
-  - [ ] Automated end-to-end incident recovery test (`pytest`)
-  - [ ] Project showcase README with architecture diagrams
+- [x] **Phase 15: End-to-End Integration Testing & Documentation**
+  - [x] Automated end-to-end incident recovery test suite (`tests/integration/test_end_to_end_recovery.py`)
+  - [x] Project showcase documentation with architecture diagrams and setup guide (`README.md`)
+  - [x] 100% test pass rate across all 76 unit and integration tests

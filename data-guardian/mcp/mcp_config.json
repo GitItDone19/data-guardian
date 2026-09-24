@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "dataguardian-postgres": {
+      "command": "python",
+      "args": [
+        "mcp/servers/postgres_server.py"
+      ],
+      "env": {
+        "POSTGRES_USER": "data_guardian",
+        "POSTGRES_PASSWORD": "guardian_pass",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DB": "data_guardian_db"
+      },
+      "description": "PostgreSQL schema inspection, table sampling, and read-only diagnostic query MCP server."
+    },
+    "dataguardian-dbt": {
+      "command": "python",
+      "args": [
+        "mcp/servers/dbt_server.py"
+      ],
+      "description": "dbt model code reader, schema contracts parser, and DAG lineage analyzer MCP server."
+    },
+    "dataguardian-airflow": {
+      "command": "python",
+      "args": [
+        "mcp/servers/airflow_server.py"
+      ],
+      "env": {
+        "POSTGRES_USER": "data_guardian",
+        "POSTGRES_PASSWORD": "guardian_pass",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DB": "data_guardian_db"
+      },
+      "description": "Airflow DAG status, error logs, and incident diagnostic triage MCP server."
+    }
+  }
+}
