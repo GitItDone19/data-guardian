@@ -5,7 +5,7 @@ with source as (
 select
     order_id,
     customer_id,
-    order_status,
+    coalesce(order_status, 'unknown') as order_status,
     cast(order_purchase_timestamp as timestamp) as purchase_at,
     cast(order_approved_at as timestamp) as approved_at,
     cast(order_delivered_carrier_date as timestamp) as delivered_carrier_at,
