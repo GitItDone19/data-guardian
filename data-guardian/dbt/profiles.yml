@@ -6,7 +6,7 @@ data_guardian_profile:
       host: localhost
       user: data_guardian
       password: guardian_pass
-      port: 5432
+      port: "{{ env_var('POSTGRES_PORT', '5433') | as_number }}"
       dbname: data_guardian_db
       schema: public
       threads: 4
@@ -16,7 +16,7 @@ data_guardian_profile:
       host: localhost
       user: data_guardian
       password: guardian_pass
-      port: 5432
+      port: "{{ env_var('POSTGRES_PORT', '5433') | as_number }}"
       dbname: data_guardian_db
       schema: staging_sandbox
       threads: 4

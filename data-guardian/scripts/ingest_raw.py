@@ -16,7 +16,7 @@ load_dotenv()
 POSTGRES_USER = os.getenv("POSTGRES_USER", "data_guardian")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "guardian_pass")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5433")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "data_guardian_db")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
