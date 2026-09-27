@@ -26,20 +26,25 @@ export default function IncidentDetailModal({
   onClose,
   onUpdated,
 }: IncidentDetailModalProps) {
+  const [currentIncident, setCurrentIncident] = useState<IncidentDetailResponse>(incident);
   const [activeTab, setActiveTab] = useState<"rca" | "diff" | "sandbox" | "audit">("rca");
   const [submitting, setSubmitting] = useState(false);
   const [triaging, setTriaging] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const status = incident.status;
-  const rca = incident.root_cause_analysis;
-  const patch = incident.proposed_model_patch;
-  const sandbox = incident.sandbox_test_result;
+  const status = currentIncident.status;
+  const rca = currentIncident.root_cause_analysis;
+  const patch = currentIncident.proposed_model_patch;
+  const sandbox = currentIncident.sandbox_test_result;
 
   const handleTriage = async () => {
     setTriaging(true);
     try {
-      await triageIncident(incident.incident_id);
+      const res = await triageIncident(currentIncident.incident_id);
+      setCurrentIncident((prev) => ({
+        ...prev,
+        ...res,
+      }));
       onUpdated();
     } catch {
       setActionMessage("✕ Failed to run agent triage. Ensure backend is running.");
@@ -180,6 +185,45 @@ export default function IncidentDetailModal({
                       <p className="text-xs text-slate-300 leading-relaxed font-mono">
                         {rca.technical_details}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Suggested Fix & Strategy */}
+                  {(patch || rca.recommended_fix) && (
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 to-slate-950/60 border border-emerald-500/30 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs tracking-wider uppercase">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Recommended Remediation Plan</span>
+                        </div>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 font-mono font-medium border border-emerald-500/20">
+                          {patch?.strategy || rca.recommended_fix?.strategy || "AUTO_FIX"}
+                        </span>
+                      </div>
+
+                      {/* Explanation */}
+                      <p className="text-xs text-slate-200 leading-relaxed">
+                        {patch?.explanation || "Apply idempotent SQL transformation patch to handle upstream schema variance or null thresholds safely."}
+                      </p>
+
+                      {/* Target File & Quick Preview */}
+                      <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 text-xs space-y-1.5 font-mono">
+                        <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                          <span>Target: <span className="text-cyan-400">{patch?.target_file || rca.recommended_fix?.target_file}</span></span>
+                          <button
+                            onClick={() => setActiveTab("diff")}
+                            className="text-cyan-400 hover:text-cyan-300 underline font-sans text-xs inline-flex items-center gap-1"
+                          >
+                            <span>View Full Code Diff</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                        {rca.recommended_fix?.suggested_sql_or_action && (
+                          <pre className="text-emerald-300 overflow-x-auto p-2 rounded bg-slate-900/90 text-xs">
+                            {rca.recommended_fix.suggested_sql_or_action}
+                          </pre>
+                        )}
+                      </div>
                     </div>
                   )}
 

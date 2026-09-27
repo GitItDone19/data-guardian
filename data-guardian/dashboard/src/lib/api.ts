@@ -59,6 +59,11 @@ export interface IncidentDetailResponse {
       finding: string;
     }>;
     confidence_score?: number;
+    recommended_fix?: {
+      strategy?: string;
+      target_file?: string;
+      suggested_sql_or_action?: string;
+    };
   };
   proposed_model_patch?: {
     model_name: string;
