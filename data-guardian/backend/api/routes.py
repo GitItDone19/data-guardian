@@ -138,16 +138,25 @@ def get_incident(incident_id: str):
         raise HTTPException(status_code=404, detail=details.get("error", "Incident not found"))
 
     inc = details["incident"]
+    
+    # Check if LangGraph agent has active triaged state for this incident
+    config = {"configurable": {"thread_id": incident_id}}
+    agent_state = agent_app.get_state(config)
+    agent_vals = agent_state.values if agent_state else {}
+
     return IncidentDetailResponse(
         incident_id=inc["incident_id"],
         pipeline_name=inc["pipeline_name"],
-        status=inc["status"],
+        status=agent_vals.get("status") or inc["status"],
         error_summary=inc.get("error_summary"),
-        root_cause=inc.get("root_cause"),
+        root_cause=inc.get("root_cause") or agent_vals.get("rca_narrative"),
         proposed_fix=inc.get("proposed_fix"),
         created_at=inc.get("created_at"),
         updated_at=inc.get("updated_at"),
-        audit_events=details.get("audit_events", [])
+        audit_events=details.get("audit_events", []),
+        root_cause_analysis=agent_vals.get("root_cause_analysis"),
+        proposed_model_patch=agent_vals.get("proposed_model_patch"),
+        sandbox_test_result=agent_vals.get("sandbox_test_result")
     )
 
 
