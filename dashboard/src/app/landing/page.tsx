@@ -8,11 +8,12 @@ import {
   Layers,
   Terminal,
   ArrowRight,
-  Play,
-  AlertTriangle,
   CheckCircle2,
+  AlertTriangle,
   Zap,
   GitBranch,
+  Play,
+  RefreshCw,
   Code2,
   Copy,
   Check,
@@ -23,13 +24,16 @@ import {
   Workflow,
   Lock,
 } from "lucide-react";
-import { fetchHealth } from "@/lib/api";
+import { fetchHealth, triggerSimulation } from "@/lib/api";
 import { toast } from "sonner";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function LandingPage() {
+  const [activeScenario, setActiveScenario] = useState<"schema_drift" | "null_spike" | "duplicates">("schema_drift");
+  const [simulating, setSimulating] = useState(false);
+  const [simulationProgress, setSimulationProgress] = useState<number>(0);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [activeCodeTab, setActiveCodeTab] = useState<"mcp" | "agent" | "dbt" | "docker">("mcp");
+  const [activeHeroTab, setActiveHeroTab] = useState<"diff" | "rca" | "sandbox" | "logs">("diff");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [isHealthy, setIsHealthy] = useState<boolean>(true);
 
@@ -46,6 +50,24 @@ export default function LandingPage() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  const handleSimulate = async (scenario: "schema_drift" | "null_spike" | "duplicates") => {
+    setSimulating(true);
+    setSimulationProgress(1);
+
+    // Call background simulation silently if live backend exists
+    triggerSimulation(scenario).catch(() => {});
+
+    // Realistic interactive multi-stage progress
+    setTimeout(() => setSimulationProgress(2), 500);
+    setTimeout(() => setSimulationProgress(3), 1100);
+    setTimeout(() => {
+      setSimulationProgress(4);
+      setSimulating(false);
+      toast.success("Incident Resolved in Sandbox", {
+        description: "Isolated schema contract verified. Patch ready for review in Console.",
+      });
+    }, 1800);
+  };
 
   const codeSnippets = {
     mcp: `{
@@ -143,7 +165,9 @@ services:
 
   return (
     <div className="min-h-screen bg-[#171717] text-[#ededed] font-sans selection:bg-[#3ecf8e]/20 selection:text-[#3ecf8e] relative overflow-x-hidden">
-
+      {/* Subtle Background Grid & Emerald Glow */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#2a2a2a0d_1px,transparent_1px),linear-gradient(to_bottom,#2a2a2a0d_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-[#3ecf8e]/10 via-[#3ecf8e]/3 to-transparent blur-[140px] pointer-events-none" />
 
       {/* TOP NAVIGATION BAR */}
       <header className="sticky top-0 z-50 h-14 backdrop-blur-md bg-[#171717]/85 border-b border-[#2e2e2e] px-4 sm:px-8 flex items-center justify-between">
@@ -196,18 +220,16 @@ services:
             href="https://github.com/GitItDone19/data-guardian"
             target="_blank"
             rel="noreferrer"
-            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-colors"
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-medium text-[#a0a0a0] hover:text-[#ededed] hover:bg-[#232323] border border-transparent hover:border-[#2e2e2e] transition-colors"
           >
-            <GitBranch className="size-3.5 text-muted-foreground" />
+            <GitBranch className="size-3.5 text-[#707070]" />
             <span>GitHub</span>
           </a>
-
-          <ThemeToggle />
 
           <Link
             id="nav-launch-console-btn"
             href="/dashboard"
-            className="h-8 px-3.5 rounded-[6px] bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-primary/20 transition-all cursor-pointer"
+            className="h-8 px-3.5 rounded-[6px] bg-[#3ecf8e] hover:bg-[#00c573] text-[#0e0e0e] text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-[#3ecf8e]/20 transition-all cursor-pointer"
           >
             <span>Launch Console</span>
             <ArrowRight className="size-3.5" />
@@ -227,14 +249,15 @@ services:
 
         {/* Primary Semantic H1 Heading */}
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#ededed] max-w-4xl mx-auto leading-[1.15]">
-          Your Pipeline Broke.{" "}
-          <span className="text-[#3ecf8e]">
-            DataGuardian Already Fixed It.
+          Automated Incident Response for{" "}
+          <span className="bg-gradient-to-r from-[#3ecf8e] via-[#6ee7b7] to-[#38bdf8] bg-clip-text text-transparent">
+            Mission-Critical Data Pipelines
           </span>
         </h1>
 
         <p className="mt-5 text-sm sm:text-base text-[#a0a0a0] max-w-2xl mx-auto leading-relaxed">
-          Autonomous root cause diagnosis, sandbox-verified patches, and one-click deployment — no war rooms, no 3 AM pages.
+          When schema drift or data quality anomalies break downstream pipelines, DataGuardian intercepts the failure,
+          identifies the root cause with deterministic evidence, and validates code patches in an isolated sandbox before production rollout.
         </p>
 
         {/* CTAs */}
@@ -298,6 +321,317 @@ services:
           </div>
         </div>
 
+        {/* HERO INTERACTIVE SHOWCASE TERMINAL / CONSOLE PREVIEW */}
+        <div className="mt-12 rounded-[8px] bg-[#1c1c1c] border border-[#2e2e2e] shadow-2xl overflow-hidden text-left">
+          {/* Terminal Window Header */}
+          <div className="h-10 px-4 bg-[#1f1f1f] border-b border-[#2e2e2e] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-[#ef4444]/80" />
+              <span className="size-2.5 rounded-full bg-[#f59e0b]/80" />
+              <span className="size-2.5 rounded-full bg-[#3ecf8e]/80" />
+              <span className="text-xs font-mono text-[#707070] ml-2">
+                dataguardian-triage ~ casefile-INC-042.sql
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs">
+              <button
+                onClick={() => setActiveHeroTab("diff")}
+                className={`px-2.5 py-1 rounded-[4px] text-xs font-medium transition-colors cursor-pointer ${
+                  activeHeroTab === "diff"
+                    ? "bg-[#282828] text-[#3ecf8e] border border-[#3ecf8e]/30"
+                    : "text-[#a0a0a0] hover:text-[#ededed]"
+                }`}
+              >
+                Proposed Code Diff
+              </button>
+              <button
+                onClick={() => setActiveHeroTab("rca")}
+                className={`px-2.5 py-1 rounded-[4px] text-xs font-medium transition-colors cursor-pointer ${
+                  activeHeroTab === "rca"
+                    ? "bg-[#282828] text-[#3ecf8e] border border-[#3ecf8e]/30"
+                    : "text-[#a0a0a0] hover:text-[#ededed]"
+                }`}
+              >
+                Root Cause Analysis
+              </button>
+              <button
+                onClick={() => setActiveHeroTab("sandbox")}
+                className={`px-2.5 py-1 rounded-[4px] text-xs font-medium transition-colors cursor-pointer ${
+                  activeHeroTab === "sandbox"
+                    ? "bg-[#282828] text-[#3ecf8e] border border-[#3ecf8e]/30"
+                    : "text-[#a0a0a0] hover:text-[#ededed]"
+                }`}
+              >
+                Sandbox Proof
+              </button>
+              <button
+                onClick={() => setActiveHeroTab("logs")}
+                className={`px-2.5 py-1 rounded-[4px] text-xs font-medium transition-colors cursor-pointer ${
+                  activeHeroTab === "logs"
+                    ? "bg-[#282828] text-[#3ecf8e] border border-[#3ecf8e]/30"
+                    : "text-[#a0a0a0] hover:text-[#ededed]"
+                }`}
+              >
+                Execution Audit
+              </button>
+            </div>
+          </div>
+
+          {/* Terminal Body */}
+          <div className="p-5 font-mono text-xs leading-relaxed overflow-x-auto min-h-[220px]">
+            {activeHeroTab === "diff" && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-[#a0a0a0] pb-2 border-b border-[#2e2e2e]">
+                  <span>Target: dbt/models/staging/stg_customers.sql</span>
+                  <span className="text-[#3ecf8e] bg-[#3ecf8e]/10 px-2 py-0.5 rounded text-[11px] border border-[#3ecf8e]/20 font-sans">
+                    Strategy: COALESCE_SCHEMA_DRIFT_ALIAS
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[#707070]">@@ -2,4 +2,5 @@ select</div>
+                  <div className="text-[#ededed]">    customer_id,</div>
+                  <div className="bg-[#ef4444]/10 text-[#ef4444] px-2 py-0.5 rounded border-l-2 border-[#ef4444]">
+                    -   customer_zip_code_prefix as zip_code,
+                  </div>
+                  <div className="bg-[#3ecf8e]/10 text-[#3ecf8e] px-2 py-0.5 rounded border-l-2 border-[#3ecf8e]">
+                    +   coalesce(postal_code_drifted, customer_zip_code_prefix) as zip_code,
+                  </div>
+                  <div className="text-[#ededed]">    customer_city as city,</div>
+                  <div className="text-[#ededed]">    customer_state as state</div>
+                  <div className="text-[#ededed]">from raw.customers;</div>
+                </div>
+              </div>
+            )}
+
+            {activeHeroTab === "rca" && (
+              <div className="space-y-3 font-sans">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-sm text-[#ededed]">
+                    Root Cause: Upstream Column Renaming on raw.customers
+                  </div>
+                  <span className="font-mono text-xs text-[#3ecf8e] bg-[#3ecf8e]/10 px-2 py-0.5 rounded border border-[#3ecf8e]/20">
+                    Confidence: 98.4%
+                  </span>
+                </div>
+                <p className="text-xs text-[#a0a0a0] leading-normal font-sans">
+                  The pipeline failure callback intercepted a compilation exception in task <span className="font-mono text-[#ededed]">dbt_run_staging</span>.
+                  Inspection of the database catalog confirmed column <span className="font-mono text-[#ef4444]">customer_zip_code_prefix</span> was renamed upstream to <span className="font-mono text-[#3ecf8e]">postal_code_drifted</span>.
+                </p>
+                <div className="flex items-center gap-2 pt-2 text-xs">
+                  <span className="text-[#707070]">Blast Radius:</span>
+                  <span className="px-2 py-0.5 rounded bg-[#232323] text-[#38bdf8] font-mono text-[11px]">staging.stg_customers</span>
+                  <span className="px-2 py-0.5 rounded bg-[#232323] text-[#a0a0a0] font-mono text-[11px]">core.dim_customers</span>
+                  <span className="px-2 py-0.5 rounded bg-[#232323] text-[#a0a0a0] font-mono text-[11px]">analytics.fact_orders</span>
+                </div>
+              </div>
+            )}
+
+            {activeHeroTab === "sandbox" && (
+              <div className="space-y-3 font-sans">
+                <div className="flex items-center justify-between text-xs border-b border-[#2e2e2e] pb-2">
+                  <span className="text-[#ededed] font-medium">Validation Target: staging_sandbox.stg_customers</span>
+                  <span className="text-[#3ecf8e] font-mono text-xs flex items-center gap-1">
+                    <CheckCircle2 className="size-3.5" /> All Assertions Passed
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                  <div className="p-2.5 rounded bg-[#232323] border border-[#2e2e2e] flex items-center justify-between">
+                    <span>ROW_COUNT_NON_ZERO</span>
+                    <span className="text-[#3ecf8e]">100 records verified</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-[#232323] border border-[#2e2e2e] flex items-center justify-between">
+                    <span>SCHEMA_CONTRACT</span>
+                    <span className="text-[#3ecf8e]">4/4 columns match</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-[#232323] border border-[#2e2e2e] flex items-center justify-between">
+                    <span>ZERO_NULL_PRIMARY_KEY</span>
+                    <span className="text-[#3ecf8e]">0 null identifiers</span>
+                  </div>
+                  <div className="p-2.5 rounded bg-[#232323] border border-[#2e2e2e] flex items-center justify-between">
+                    <span>PROD_ISOLATION</span>
+                    <span className="text-[#38bdf8]">Zero prod mutations</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeHeroTab === "logs" && (
+              <div className="space-y-1.5 text-xs text-[#a0a0a0]">
+                <div><span className="text-[#707070]">[00:01.120]</span> <span className="text-[#ef4444]">INTERCEPT:</span> Task exception caught in ecommerce_pipeline.dbt_run_staging</div>
+                <div><span className="text-[#707070]">[00:02.450]</span> <span className="text-[#38bdf8]">DIAGNOSE:</span> Querying information_schema catalogs for relation raw.customers</div>
+                <div><span className="text-[#707070]">[00:07.890]</span> <span className="text-[#f59e0b]">ROOT_CAUSE:</span> Column postal_code_drifted (INT) discovered; customer_zip_code_prefix dropped</div>
+                <div><span className="text-[#707070]">[00:11.340]</span> <span className="text-[#3ecf8e]">SANDBOX:</span> Executing candidate dbt model in isolated staging_sandbox</div>
+                <div><span className="text-[#707070]">[00:18.910]</span> <span className="text-[#3ecf8e]">VERIFIED:</span> Contract assertions passing. Sandbox row count = 100</div>
+                <div><span className="text-[#707070]">[00:22.050]</span> <span className="text-[#f59e0b]">CHECKPOINT:</span> Ready for human approval. Incident ticket INC-042 created</div>
+              </div>
+            )}
+          </div>
+
+          {/* Terminal Bottom Action Banner */}
+          <div className="h-11 px-4 bg-[#1f1f1f] border-t border-[#2e2e2e] flex items-center justify-between text-xs">
+            <span className="text-[#a0a0a0] flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-[#f59e0b] animate-pulse" />
+              <span>Awaiting Review in Operational Console</span>
+            </span>
+            <Link
+              href="/dashboard"
+              className="text-xs font-medium text-[#3ecf8e] hover:text-[#00c573] flex items-center gap-1 transition-colors"
+            >
+              <span>Review in Console</span>
+              <ArrowRight className="size-3" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* INTERACTIVE INCIDENT SIMULATOR & WALKTHROUGH */}
+      <section id="interactive-demo" className="py-20 px-4 sm:px-8 border-y border-[#2e2e2e] bg-[#141414]">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c1c1c] border border-[#2e2e2e] text-xs text-[#3ecf8e] mb-3">
+              <Zap className="size-3" />
+              <span>Interactive Incident Walkthrough</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-[#ededed]">
+              Explore Real Pipeline Failure Recovery
+            </h2>
+            <p className="mt-3 text-xs sm:text-sm text-[#a0a0a0]">
+              Select a real-world pipeline anomaly scenario and inspect how DataGuardian isolates root causes and recovers downstream data products safely.
+            </p>
+          </div>
+
+          {/* Scenario Selectors */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+            {(["schema_drift", "null_spike", "duplicates"] as const).map((key) => {
+              const sc = scenariosData[key];
+              const isSelected = activeScenario === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setActiveScenario(key);
+                    setSimulationProgress(0);
+                  }}
+                  className={`p-4 rounded-[6px] text-left transition-all cursor-pointer border ${
+                    isSelected
+                      ? "bg-[#1c1c1c] border-[#3ecf8e] shadow-md shadow-[#3ecf8e]/10"
+                      : "bg-[#1a1a1a] border-[#2e2e2e] hover:border-[#363636] hover:bg-[#1c1c1c]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-mono font-medium text-[#3ecf8e]">
+                      {key.toUpperCase()}
+                    </span>
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
+                        sc.severity === "CRITICAL"
+                          ? "bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/30"
+                          : "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30"
+                      }`}
+                    >
+                      {sc.severity}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-[#ededed] mb-1">{sc.title}</h3>
+                  <p className="text-xs text-[#707070] line-clamp-2">{sc.subtitle}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Scenario Execution Deck */}
+          <div className="rounded-[8px] bg-[#1c1c1c] border border-[#2e2e2e] p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#2e2e2e]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-base text-[#ededed]">
+                    {scenariosData[activeScenario].title}
+                  </span>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#232323] text-[#38bdf8] border border-[#2e2e2e]">
+                    {scenariosData[activeScenario].table}
+                  </span>
+                </div>
+                <p className="text-xs text-[#a0a0a0] mt-1">
+                  {scenariosData[activeScenario].subtitle}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  id="trigger-simulation-btn"
+                  onClick={() => handleSimulate(activeScenario)}
+                  disabled={simulating}
+                  className="h-9 px-4 rounded-[6px] bg-[#3ecf8e] hover:bg-[#00c573] disabled:opacity-50 text-[#0e0e0e] text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-sm shadow-[#3ecf8e]/20"
+                >
+                  {simulating ? (
+                    <RefreshCw className="size-3.5 animate-spin" />
+                  ) : (
+                    <Play className="size-3.5 fill-[#0e0e0e]" />
+                  )}
+                  <span>{simulating ? "Executing Walkthrough..." : "Run Incident Walkthrough"}</span>
+                </button>
+
+                <Link
+                  href="/dashboard"
+                  className="h-9 px-3 rounded-[6px] bg-[#232323] hover:bg-[#282828] border border-[#2e2e2e] text-xs font-medium text-[#ededed] flex items-center gap-1.5 transition-colors"
+                >
+                  <span>Open Console</span>
+                  <ArrowRight className="size-3 text-[#707070]" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Interactive Progress Bar if running */}
+            {simulating && (
+              <div className="p-3 rounded-[6px] bg-[#232323] border border-[#3ecf8e]/30 flex items-center justify-between text-xs font-mono text-[#3ecf8e]">
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="size-3.5 animate-spin" />
+                  <span>
+                    {simulationProgress === 1 && "Intercepting pipeline exception..."}
+                    {simulationProgress === 2 && "Inspecting PostgreSQL schema catalogs..."}
+                    {simulationProgress === 3 && "Executing model in staging_sandbox..."}
+                    {simulationProgress === 4 && "Validation passed. Patch synthesized."}
+                  </span>
+                </span>
+                <span className="text-[#a0a0a0]">Step {simulationProgress} of 4</span>
+              </div>
+            )}
+
+            {/* Execution Pipeline Steps Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-[6px] bg-[#232323]/60 border border-[#2e2e2e] space-y-2">
+                <div className="text-[#ef4444] font-medium flex items-center gap-1.5">
+                  <AlertTriangle className="size-3.5" />
+                  <span>1. Pipeline Anomaly</span>
+                </div>
+                <p className="text-[#a0a0a0] leading-relaxed">
+                  {scenariosData[activeScenario].failureReason}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-[6px] bg-[#232323]/60 border border-[#2e2e2e] space-y-2">
+                <div className="text-[#38bdf8] font-medium flex items-center gap-1.5">
+                  <Bot className="size-3.5" />
+                  <span>2. Autonomous Diagnostic &amp; Patch</span>
+                </div>
+                <p className="text-[#a0a0a0] leading-relaxed">
+                  {scenariosData[activeScenario].fixAction}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-[6px] bg-[#232323]/60 border border-[#2e2e2e] space-y-2">
+                <div className="text-[#3ecf8e] font-medium flex items-center gap-1.5">
+                  <CheckCircle2 className="size-3.5" />
+                  <span>3. Isolated Sandbox Validation</span>
+                </div>
+                <p className="text-[#a0a0a0] leading-relaxed">
+                  {scenariosData[activeScenario].sandboxTest}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* 5-STAGE AUTONOMOUS LIFECYCLE / ARCHITECTURE */}

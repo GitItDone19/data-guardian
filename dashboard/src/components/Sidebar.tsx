@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   ShieldAlert,
   Activity,
@@ -9,6 +10,7 @@ import {
   TestTube2,
   FileText,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -26,14 +28,14 @@ export default function Sidebar({
   apiOnline,
 }: SidebarProps) {
   return (
-    <aside className="w-56 shrink-0 bg-[#1c1c1c] border-r border-[#2e2e2e] flex flex-col justify-between h-screen sticky top-0 select-none">
+    <aside className="w-56 shrink-0 bg-card border-r border-border flex flex-col justify-between h-screen sticky top-0 select-none transition-colors">
       {/* Top Header & Project Switcher */}
       <div>
         {/* Brand Header */}
-        <div className="h-12 px-4 flex items-center border-b border-[#2e2e2e]">
-          <div className="flex items-center gap-2.5">
-            {/* Supabase-style flat emerald logo */}
-            <div className="size-6 rounded-[5px] bg-[#3ecf8e] flex items-center justify-center text-[#0e0e0e]">
+        <div className="h-12 px-4 flex items-center border-b border-border">
+          <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity" title="Back to Landing Page">
+            {/* Supabase-style emerald logo */}
+            <div className="size-6 rounded-[5px] bg-primary flex items-center justify-center text-primary-foreground">
               <svg
                 viewBox="0 0 24 24"
                 fill="currentColor"
@@ -42,18 +44,17 @@ export default function Sidebar({
                 <path d="M12 2L2 19.5h9L9 22l13-10h-9l3-10z" />
               </svg>
             </div>
-            <span className="font-semibold text-sm text-[#ededed] tracking-tight">
+            <span className="font-semibold text-sm text-foreground tracking-tight">
               DataGuardian
             </span>
-          </div>
+          </Link>
         </div>
-
 
         {/* Navigation Menu */}
         <nav className="p-2.5 space-y-4">
           {/* Section: Operational reliability */}
           <div>
-            <div className="px-2 mb-1.5 text-xs text-[#707070]">
+            <div className="px-2 mb-1.5 text-xs text-muted-foreground font-medium">
               Operational reliability
             </div>
             <div className="space-y-0.5">
@@ -61,20 +62,20 @@ export default function Sidebar({
                 onClick={() => setActiveTab("incidents")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "incidents"
-                    ? "bg-[#232323] text-[#ededed]"
-                    : "text-[#a0a0a0] hover:text-[#ededed] hover:bg-[#232323]/50"
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <ShieldAlert className="size-4 text-[#a0a0a0]" strokeWidth={1.5} />
-                  <span>Incidents & triage</span>
+                  <ShieldAlert className="size-4 text-muted-foreground" strokeWidth={1.5} />
+                  <span>Incidents &amp; triage</span>
                 </div>
                 {openIncidentsCount > 0 ? (
                   <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
                     {openIncidentsCount}
                   </span>
                 ) : (
-                  <span className="text-[11px] text-[#707070]">0</span>
+                  <span className="text-[11px] text-muted-foreground/60">0</span>
                 )}
               </button>
 
@@ -82,12 +83,12 @@ export default function Sidebar({
                 onClick={() => setActiveTab("metrics")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "metrics"
-                    ? "bg-[#232323] text-[#ededed]"
-                    : "text-[#a0a0a0] hover:text-[#ededed] hover:bg-[#232323]/50"
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Activity className="size-4 text-[#a0a0a0]" strokeWidth={1.5} />
+                  <Activity className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   <span>Pipeline metrics</span>
                 </div>
               </button>
@@ -96,12 +97,12 @@ export default function Sidebar({
                 onClick={() => setActiveTab("lineage")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "lineage"
-                    ? "bg-[#232323] text-[#ededed]"
-                    : "text-[#a0a0a0] hover:text-[#ededed] hover:bg-[#232323]/50"
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Layers className="size-4 text-[#a0a0a0]" strokeWidth={1.5} />
+                  <Layers className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   <span>dbt DAG lineage</span>
                 </div>
               </button>
@@ -110,20 +111,20 @@ export default function Sidebar({
 
           {/* Section: Warehouse & schema */}
           <div>
-            <div className="px-2 mb-1.5 text-xs text-[#707070]">
-              Warehouse & schema
+            <div className="px-2 mb-1.5 text-xs text-muted-foreground font-medium">
+              Warehouse &amp; schema
             </div>
             <div className="space-y-0.5">
               <button
                 onClick={() => setActiveTab("database")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "database"
-                    ? "bg-[#232323] text-[#ededed]"
-                    : "text-[#a0a0a0] hover:text-[#ededed] hover:bg-[#232323]/50"
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Database className="size-4 text-[#a0a0a0]" strokeWidth={1.5} />
+                  <Database className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   <span>PostgreSQL tables</span>
                 </div>
               </button>
@@ -132,12 +133,12 @@ export default function Sidebar({
                 onClick={() => setActiveTab("sandbox")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "sandbox"
-                    ? "bg-[#232323] text-[#ededed]"
-                    : "text-[#a0a0a0] hover:text-[#ededed] hover:bg-[#232323]/50"
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <TestTube2 className="size-4 text-[#a0a0a0]" strokeWidth={1.5} />
+                  <TestTube2 className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   <span>Staging sandbox</span>
                 </div>
               </button>
@@ -146,12 +147,12 @@ export default function Sidebar({
                 onClick={() => setActiveTab("audit")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "audit"
-                    ? "bg-[#232323] text-[#ededed]"
-                    : "text-[#a0a0a0] hover:text-[#ededed] hover:bg-[#232323]/50"
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <FileText className="size-4 text-[#a0a0a0]" strokeWidth={1.5} />
+                  <FileText className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   <span>Agent audit log</span>
                 </div>
               </button>
@@ -160,19 +161,28 @@ export default function Sidebar({
 
           {/* Section: External tools */}
           <div>
-            <div className="px-2 mb-1.5 text-xs text-[#707070]">
+            <div className="px-2 mb-1.5 text-xs text-muted-foreground font-medium">
               External tools
             </div>
             <div className="space-y-0.5">
+              <Link
+                href="/"
+                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="size-4 text-primary" strokeWidth={1.5} />
+                  <span>Product landing</span>
+                </div>
+              </Link>
               <a
                 href="http://localhost:8000/docs"
                 target="_blank"
                 rel="noreferrer"
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium text-[#a0a0a0] hover:text-[#ededed] hover:bg-[#232323]/50 transition-colors"
+                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
-                  <ExternalLink className="size-4 text-[#a0a0a0]" strokeWidth={1.5} />
-                  <span>FastAPI & MCP docs</span>
+                  <ExternalLink className="size-4 text-muted-foreground" strokeWidth={1.5} />
+                  <span>FastAPI &amp; MCP docs</span>
                 </div>
               </a>
             </div>
@@ -181,16 +191,16 @@ export default function Sidebar({
       </div>
 
       {/* Reduced Subtle Connection Status Line */}
-      <div className="p-3 border-t border-[#2e2e2e] flex items-center justify-between text-xs text-[#a0a0a0]">
+      <div className="p-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <span
             className={`size-2 rounded-full ${
-              apiOnline ? "bg-[#3ecf8e]" : "bg-[#ef4444]"
+              apiOnline ? "bg-primary" : "bg-destructive"
             }`}
           />
           <span>{apiOnline ? "Connected (:5433)" : "API offline"}</span>
         </div>
-        <span className="font-mono text-[11px] text-[#707070]">v1.0</span>
+        <span className="font-mono text-[11px] text-muted-foreground/70">v1.0</span>
       </div>
     </aside>
   );

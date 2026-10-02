@@ -144,19 +144,22 @@ def get_incident(incident_id: str):
     agent_state = agent_app.get_state(config)
     agent_vals = agent_state.values if agent_state else {}
 
+    # If the database status is OPEN, respect it so user can trigger the pipeline live
+    final_status = inc["status"] if inc["status"] in ["OPEN", "RESOLVED"] else (agent_vals.get("status") or inc["status"])
+
     return IncidentDetailResponse(
         incident_id=inc["incident_id"],
         pipeline_name=inc["pipeline_name"],
-        status=agent_vals.get("status") or inc["status"],
+        status=final_status,
         error_summary=inc.get("error_summary"),
-        root_cause=inc.get("root_cause") or agent_vals.get("rca_narrative"),
+        root_cause=inc.get("root_cause") or (agent_vals.get("rca_narrative") if final_status != "OPEN" else None),
         proposed_fix=inc.get("proposed_fix"),
         created_at=inc.get("created_at"),
         updated_at=inc.get("updated_at"),
         audit_events=details.get("audit_events", []),
-        root_cause_analysis=agent_vals.get("root_cause_analysis"),
-        proposed_model_patch=agent_vals.get("proposed_model_patch"),
-        sandbox_test_result=agent_vals.get("sandbox_test_result")
+        root_cause_analysis=agent_vals.get("root_cause_analysis") if final_status != "OPEN" else None,
+        proposed_model_patch=agent_vals.get("proposed_model_patch") if final_status != "OPEN" else None,
+        sandbox_test_result=agent_vals.get("sandbox_test_result") if final_status != "OPEN" else None
     )
 
 
@@ -269,13 +272,8 @@ def simulate_scenario(request: SimulationRequest):
                 from backend.services.quality_engine import QualityEngine
                 qe = QualityEngine()
                 eval_res = qe.run_checks(emit_on_failure=True)
-                # Auto-triage all newly emitted open incidents with the LangGraph agent
-                for r in eval_res.get("results", []):
-                    if r.status == "FAILED" and r.incident_id:
-                        try:
-                            triage_incident(r.incident_id)
-                        except Exception as te:
-                            logger.warning(f"Auto-triage warning for {r.incident_id}: {te}")
+                # Keep newly emitted incidents in OPEN status so the user can watch the agent pipeline execute step-by-step
+                logger.info(f"Registered anomaly incidents in OPEN status: {[r.incident_id for r in eval_res.get('results', []) if r.status == 'FAILED']}")
             except Exception as qe_err:
                 logger.error(f"Quality engine check error during simulation: {qe_err}")
 

@@ -4,50 +4,52 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Supabase Studio Dark Theme Palette */
+/* Supabase Studio Light & Dark Theme Palette */
 :root {
-  --background: #171717;
-  --foreground: #ededed;
-  --card: #1c1c1c;
-  --card-foreground: #ededed;
-  --popover: #1c1c1c;
-  --popover-foreground: #ededed;
-  --primary: #3ecf8e;            /* Supabase signature emerald green */
-  --primary-hover: #00c573;
-  --primary-foreground: #0e0e0e;
-  --secondary: #232323;
-  --secondary-foreground: #ededed;
-  --muted: #232323;
-  --muted-foreground: #a0a0a0;
-  --muted-faint: #707070;
-  --accent: #232323;
-  --accent-foreground: #ededed;
+  /* LIGHT THEME (Clean Supabase Studio daylight styling) */
+  --background: #fbfbfb;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #00c573;            /* Rich Emerald Green */
+  --primary-hover: #00a860;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #1f2937;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --muted-faint: #9ca3af;
+  --accent: #f0fdf4;
+  --accent-foreground: #166534;
   --destructive: #ef4444;        /* Crimson */
-  --border: #2e2e2e;
-  --border-strong: #363636;
-  --input: #1c1c1c;
-  --ring: #3ecf8e;
-  --success: #3ecf8e;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --input: #ffffff;
+  --ring: #00c573;
+  --success: #00c573;
   --warning: #f59e0b;
-  --info: #38bdf8;
+  --info: #0284c7;
   --radius: 6px;
 
-  /* Supabase Chart tokens */
-  --chart-1: #3ecf8e;
-  --chart-2: #38bdf8;
+  /* Chart tokens light */
+  --chart-1: #00c573;
+  --chart-2: #0284c7;
   --chart-3: #f59e0b;
   --chart-4: #ef4444;
-  --chart-5: #a0a0a0;
+  --chart-5: #6b7280;
 }
 
 .dark {
+  /* DARK THEME (Signature Supabase Studio Charcoal) */
   --background: #171717;
   --foreground: #ededed;
   --card: #1c1c1c;
   --card-foreground: #ededed;
   --popover: #1c1c1c;
   --popover-foreground: #ededed;
-  --primary: #3ecf8e;
+  --primary: #3ecf8e;            /* Supabase signature emerald */
   --primary-hover: #00c573;
   --primary-foreground: #0e0e0e;
   --secondary: #232323;
@@ -67,6 +69,7 @@
   --info: #38bdf8;
   --radius: 6px;
 
+  /* Chart tokens dark */
   --chart-1: #3ecf8e;
   --chart-2: #38bdf8;
   --chart-3: #f59e0b;
@@ -124,56 +127,51 @@ body {
 
 /* Supabase Studio Card Surface */
 .supabase-card {
-  background-color: #1c1c1c;
-  border: 1px solid #2e2e2e;
+  background-color: var(--card);
+  border: 1px solid var(--border);
   border-radius: 6px;
   transition: border-color 0.12s ease;
 }
 
 .supabase-card:hover {
-  border-color: #363636;
+  border-color: var(--border-strong);
 }
 
 /* Supabase Sidebar Surface */
 .supabase-sidebar {
-  background-color: #1c1c1c;
-  border-right: 1px solid #2e2e2e;
+  background-color: var(--card);
+  border-right: 1px solid var(--border);
 }
 
-/* Supabase Diff Lines */
-.supabase-diff-add {
-  background-color: rgba(62, 207, 142, 0.1);
-  color: #3ecf8e;
-  border-left: 2px solid #3ecf8e;
+/* Supabase Monospace Terminal Display */
+.supabase-terminal {
+  font-family: var(--font-mono);
+  background-color: #0f172a;
+  color: #38bdf8;
+  border-radius: 4px;
+  padding: 0.5rem;
 }
 
-.supabase-diff-del {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-  border-left: 2px solid #ef4444;
+.dark .supabase-terminal {
+  background-color: #121212;
+  color: #ededed;
 }
 
-/* Custom Scrollbar for Supabase Console */
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #141414;
-}
-::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3a;
+  background: transparent;
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/40;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
 }

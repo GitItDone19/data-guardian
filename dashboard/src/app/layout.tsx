@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -31,22 +32,24 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
-        "dark",
         inter.variable,
         jetbrainsMono.variable
       )}
     >
-      <body className="antialiased min-h-screen font-sans bg-[#171717] text-[#ededed] selection:bg-[#3ecf8e]/20 selection:text-[#3ecf8e]">
-        <TooltipProvider delay={150}>
-          {children}
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              className: "text-xs border border-[#2e2e2e] bg-[#1c1c1c] text-[#ededed]",
-            }}
-          />
-        </TooltipProvider>
+      <body suppressHydrationWarning className="antialiased min-h-screen font-sans bg-background text-foreground selection:bg-primary/20 selection:text-primary transition-colors duration-150">
+        <ThemeProvider>
+          <TooltipProvider delay={150}>
+            {children}
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                className: "text-xs border border-border bg-card text-foreground",
+              }}
+            />
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
