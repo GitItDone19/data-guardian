@@ -2,6 +2,8 @@
 
 **Detect data issues, explain their cause, and review a proposed SQL fix in one workflow.**
 
+[Open the live DataGuardian demo](https://data-guardian-amber.vercel.app) · [Go straight to the dashboard](https://data-guardian-amber.vercel.app/dashboard)
+
 DataGuardian is an Agentic DataOps prototype built around an e-commerce warehouse. It connects data quality checks, evidence-based investigation, dbt model patches, sandbox assertions, and an operations dashboard so an engineer can understand an incident before approving a change.
 
 ![DataGuardian incident workflow: detect, investigate, propose and test, human review, apply and record](docs/images/dataguardian-workflow.png)
