@@ -1,273 +1,236 @@
-# 🛡️ DataGuardian — Agentic DataOps Platform
+# DataGuardian
 
-> **Autonomous monitoring, root cause analysis (RCA), sandbox test validation, and human-in-the-loop remediation for modern data pipelines.**
+**Detect data issues, explain their cause, and review a proposed SQL fix in one workflow.**
 
----
+DataGuardian is an Agentic DataOps prototype built around an e-commerce warehouse. It connects data quality checks, evidence-based investigation, dbt model patches, sandbox assertions, and an operations dashboard so an engineer can understand an incident before approving a change.
 
-## 🌟 Overview
+![DataGuardian incident workflow: detect, investigate, propose and test, human review, apply and record](docs/images/dataguardian-workflow.png)
 
-**DataGuardian** is an end-to-end, production-grade **Agentic DataOps platform**. When data pipelines fail due to schema drift, missing values, or duplicate records, DataGuardian doesn't just send an alert — it acts as an autonomous data reliability engineer:
+[Quickstart](#quickstart) · [Try an incident](#try-an-incident) · [Architecture](#architecture) · [MCP tools](#mcp-tools) · [Current scope](#current-scope)
 
-1. **Detects** anomalies via statistical assertions and dbt quality contracts.
-2. **Investigates** root causes using LangGraph agents and read-only diagnostic tools.
-3. **Synthesizes** structured, empirical Root Cause Analysis (RCA) reports.
-4. **Validates** proposed SQL/dbt model code patches in an isolated `staging_sandbox` schema.
-5. **Enforces Human-in-the-Loop (HITL)** governance via a modern Next.js dashboard.
-6. **Remediates** production pipelines safely upon approval, maintaining atomic backups and rollback capabilities.
-7. **Exposes** data tools to external AI clients (Claude Desktop, Cursor, VS Code) via the open **Model Context Protocol (MCP)** standard.
+## What does it do?
 
----
+A renamed source column can break a transformation. Missing order statuses can undermine reporting. Duplicate payments can inflate totals. DataGuardian turns these failures into an investigation with evidence, an explanation, and a reviewable model change.
 
-## 🏗️ System Architecture
+| Problem | What DataGuardian inspects | Proposed model change |
+| --- | --- | --- |
+| Schema drift in customers | Actual columns, expected fields, and the staging model | Adapt the SQL to the changed source column |
+| Missing order statuses | Null checks and affected sample rows | Add a fallback for missing statuses |
+| Duplicate payments | Repeated payment keys and sample records | Deduplicate the staging output |
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                        STEP 1: ANOMALY & DETECTION                     │
-│                                                                        │
-│  [Source Data: Missing / Drift] ───> [dbt Quality Tests Fail]          │
-│                                                │                       │
-│                                                ▼                       │
-│                                  [Ticket Created: dataops.incidents]   │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                    STEP 2: AGENTIC INVESTIGATION                       │
-│                                                                        │
-│                    [LangGraph AI Agent Wakes Up]                       │
-│                                   │                                    │
-│        ┌──────────────────────────┼──────────────────────────┐         │
-│        ▼                          ▼                          ▼         │
-│ [Airflow Tool]            [Postgres Tool]               [dbt Tool]     │
-│ Reads Error Logs         Runs SELECT Queries          Reads Model Code │
-│        │                          │                          │         │
-│        └──────────────────────────┼──────────────────────────┘         │
-│                                   ▼                                    │
-│                      [Root Cause Identified (RCA)]                     │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   STEP 3: SAFE SANDBOX VALIDATION                      │
-│                                                                        │
-│                     [AI Generates Code Patch]                          │
-│                                   │                                    │
-│                                   ▼                                    │
-│             [AI Tests Fix in Isolated 'staging_sandbox']               │
-│                   (Production data is NOT touched!)                    │
-│                                   │                                    │
-│                                   ▼                                    │
-│                       [Sandbox Tests Pass: 100%]                       │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                  STEP 4: HUMAN APPROVAL (DASHBOARD)                    │
-│                                                                        │
-│                  [Agent Pauses: Waiting for Human]                     │
-│                                   │                                    │
-│                                   ▼                                    │
-│                [Next.js Dashboard shows to Engineer]:                  │
-│                 1. Plain-English Root Cause Explanation                │
-│                 2. Code Diff (Old Code vs New Code)                    │
-│                 3. Sandbox Test Proof                                  │
-│                                   │                                    │
-│                                   ▼                                    │
-│                 [Engineer Clicks "Approve Fix" Button]                 │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                       STEP 5: AUTOMATIC RECOVERY                       │
-│                                                                        │
-│                   [Approved Fix Applied to Model]                      │
-│                                   │                                    │
-│                                   ▼                                    │
-│                 [Airflow Pipeline Restarts & Passes]                   │
-│                                   │                                    │
-│                                   ▼                                    │
-│                    [Incident Marked: RESOLVED]                         │
-└────────────────────────────────────────────────────────────────────────┘
-```
+These changes repair the transformed output; they do not reconstruct missing source information. Engineers should review the business meaning of every proposed fix.
 
----
+## How it works
 
-## 💻 Technology Stack
+1. **Detect.** Run warehouse quality rules or capture an Airflow task failure. Incidents are stored in `dataops.incidents`.
+2. **Investigate.** A LangGraph workflow reads incident details, database metadata, sample rows, dbt model code, and contracts.
+3. **Explain and propose.** Generate a structured root cause analysis (RCA), a proposed SQL model patch, and a code diff. RCA can use an optional LLM or deterministic evidence synthesis.
+4. **Test.** Create a view in `staging_sandbox` and evaluate model-specific assertions, such as null checks, payment key uniqueness, or expected columns.
+5. **Review.** The dashboard presents the explanation, patch, and sandbox results. The workflow waits for an engineer to approve or reject.
+6. **Apply and record.** Approval invokes model backup and patch application, followed by the recovery stub and incident resolution logging. Rejection leaves the proposed patch unapplied.
 
-| Layer | Technology | Role & Purpose |
-| :--- | :--- | :--- |
-| **Warehouse** | **PostgreSQL 15** | Multi-schema database (`raw`, `staging`, `core`, `analytics`, `dataops`, `staging_sandbox`). |
-| **Transformations** | **dbt (dbt-postgres)** | Staging views, dimensional tables (`dim_customers`, `fact_orders`), and schema test contracts. |
-| **Orchestration** | **Apache Airflow** | Scheduled ingestion, transformation, and automated failure hooks. |
-| **Agent Engine** | **LangGraph + LangChain** | Stateful graph execution, sequential reasoning, memory checkpointing, and HITL interrupts. |
-| **Protocol Layer** | **Model Context Protocol (MCP 2.x)** | Modular MCP servers exposing Postgres, dbt, and Airflow toolsets to external AI hosts. |
-| **Backend API** | **FastAPI + Uvicorn** | REST endpoints for health metrics, incident triage, and human approval routes. |
-| **Web Portal** | **Next.js 15 (React + Tailwind)** | Real-time operations portal with metrics cards, audit logs, diff viewer, and approval actions. |
+Sandbox checks provide evidence for review; they are not a guarantee of correctness. See [current scope](#current-scope) for the implementation boundaries.
 
----
+## Architecture
 
-## 📂 Project Structure
+![DataGuardian architecture showing the data pipeline, incident investigation, dashboard review, sandbox, and MCP tools](docs/images/dataguardian-architecture.png)
 
-```
-data-guardian/
-├── agent/                         # LangGraph AI Agent & Diagnostic Engine
-│   ├── graph/                     # Graph definition, state schema, and nodes
-│   └── tools/                     # Read-only and write remediation tools
-├── airflow/                       # Airflow DAGs and automated failure hooks
-│   ├── dags/                      # ecommerce_pipeline.py
-│   └── plugins/                   # failure_hook.py
-├── backend/                       # FastAPI REST API Backend
-│   ├── api/                       # API routes, Pydantic schemas, WebSockets
-│   └── main.py                    # Application entry point with CORS
-├── dashboard/                     # Next.js 15 Operational Web Portal
-│   └── src/app/                   # React components (IncidentList, DiffModal, Metrics)
-├── data/                          # Data repository
-│   ├── raw_seed/                  # Clean 5,000-order referential Olist seed data
-│   └── incident_simulations/      # Anomaly datasets (schema drift, null spikes, duplicates)
-├── dbt/                           # dbt transformation models and tests
-│   └── models/                    # staging views, core dimensions, schema.yml
-├── mcp/                           # Model Context Protocol (MCP) Servers
-│   ├── servers/                   # postgres_server.py, dbt_server.py, airflow_server.py
-│   └── mcp_config.json            # Client configuration for Claude Desktop / Cursor
-├── scripts/                       # Database loading & live incident simulation scripts
-└── tests/                         # Test suites (80+ automated tests)
-    ├── unit/                      # Unit tests for tools, graph, API, and MCP
-    └── integration/               # End-to-end incident lifecycle tests
-```
+| Component | Technology | Responsibility |
+| --- | --- | --- |
+| Warehouse | PostgreSQL 15 | Source data, transformed models, sandbox views, incidents, and audit records |
+| Transformations | dbt-postgres | Staging views, core models, and data tests |
+| Orchestration | Apache Airflow 2.9.2 | E-commerce DAG and task failure callbacks |
+| Investigation | LangGraph + LangChain | Stateful investigation, RCA, patch generation, and human review |
+| API | FastAPI | Incident queries, diagnosis, approval, and simulation endpoints |
+| Dashboard | Next.js 16 + React 19 + Tailwind CSS | Pipeline overview, incident details, code diffs, and review actions |
+| External tools | Model Context Protocol (MCP) | PostgreSQL, dbt, and Airflow diagnostic interfaces |
 
----
+The data pipeline is `CSV seed files → raw tables → staging models → core models → dbt tests`. Operational records live in `dataops`; proposed model views are evaluated in `staging_sandbox`.
 
-## 🚀 Quickstart Guide
+## Quickstart
 
-### Prerequisites
-- **Docker & Docker Compose**
-- **Python 3.11+**
-- **Node.js 18+ & npm**
+Run commands from the repository root unless stated otherwise. The core demo uses local Python and Node.js processes with PostgreSQL in Docker; Airflow is optional.
 
-### 1. Environment Setup
-Clone the repository and configure environment variables:
+**Prerequisites:** Docker Compose, Python 3.11+, and Node.js 20.9+ with npm.
+
+### 1. Install Python dependencies
+
 ```bash
-cp .env.example .env   # Or review the existing .env file
-pip install -r requirements.txt
+python -m venv .venv
 ```
 
-### 2. Start PostgreSQL Warehouse
+Activate the environment:
+
+```powershell
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
 ```bash
-docker-compose up -d postgres
+# macOS / Linux
+source .venv/bin/activate
 ```
 
-### 3. Ingest Seed Data
-Load clean seed tables into the PostgreSQL `raw` schema:
+```bash
+python -m pip install -r requirements.txt
+```
+
+Create a `.env` file in the repository root with the following local demo settings. If one already exists, review it instead of replacing it.
+
+```dotenv
+POSTGRES_USER=data_guardian
+POSTGRES_PASSWORD=guardian_pass
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=data_guardian_db
+```
+
+Keep the database name and credentials aligned with [dbt/profiles.yml](dbt/profiles.yml), which currently hardcodes them. Compose and Python default to port `5432`, while the dbt profile defaults to `5433`; explicitly export `POSTGRES_PORT` for dbt in the terminal used below:
+
+```powershell
+# Windows PowerShell
+$env:POSTGRES_PORT = "5432"
+```
+
+```bash
+# macOS / Linux
+export POSTGRES_PORT=5432
+```
+
+If port `5432` is occupied, use the same alternative port in both `.env` and your shell.
+
+### 2. Start the warehouse and load the sample data
+
+```bash
+docker compose up -d postgres
+docker compose ps postgres
+```
+
+Wait until PostgreSQL is healthy, then run:
+
 ```bash
 python scripts/ingest_raw.py
+dbt debug --project-dir dbt --profiles-dir dbt
+dbt run --project-dir dbt --profiles-dir dbt
+dbt test --project-dir dbt --profiles-dir dbt
+python scripts/run_quality_checks.py
 ```
 
-### 4. Run dbt Transformations & Verify
-```bash
-cd dbt
-dbt deps
-dbt run
-dbt test
-cd ..
-```
+On a fresh PostgreSQL volume, Docker runs [scripts/init_db.sql](scripts/init_db.sql) to create the schemas and operational tables. Existing volumes do not rerun that initialization automatically.
 
-### 5. Launch the FastAPI Management Backend
+### 3. Start the API and dashboard
+
+In the activated Python environment:
+
 ```bash
 uvicorn backend.main:app --reload --port 8000
 ```
-*API Swagger Documentation is available at: `http://localhost:8000/docs`*
 
-### 6. Launch the Next.js Operations Dashboard
+In a second terminal:
+
 ```bash
 cd dashboard
 npm install
 npm run dev
 ```
-*Open your browser to: `http://localhost:3000`*
 
----
+Open the [dashboard](http://localhost:3000) and [interactive API docs](http://localhost:8000/docs). The dashboard defaults to `http://localhost:8000/api`; override `NEXT_PUBLIC_API_URL` in `dashboard/.env.local` if needed.
 
-## 🔌 Model Context Protocol (MCP) Integration
+### Optional: LLM-assisted explanations
 
-DataGuardian provides 3 modular MCP servers allowing external AI assistants (e.g. **Claude Desktop**, **Cursor IDE**, or **VS Code**) to securely inspect the database, check dbt models, and triage Airflow pipeline errors.
+The demo supports deterministic RCA without an API key. To enable LLM-assisted RCA, configure these variables in the root `.env`:
 
-### Starting an MCP Server
-```bash
-# PostgreSQL Schema & Query Inspector
-python mcp/servers/postgres_server.py
-
-# dbt Model & Contract Inspector
-python mcp/servers/dbt_server.py
-
-# Airflow Pipeline & Incident Diagnostic Server
-python mcp/servers/airflow_server.py
+```dotenv
+LLM_API_KEY=your_provider_key
+LLM_MODEL=your_model_name
+# Optional OpenAI-compatible endpoint:
+# LLM_BASE_URL=https://your-provider.example/v1
 ```
 
-### Connecting to Claude Desktop / Cursor
-Add the configuration from [mcp/mcp_config.json](file:///d:/Github/Data%20Engineering/data-guardian/mcp/mcp_config.json) to your `claude_desktop_config.json`:
-```json
-{
-  "mcpServers": {
-    "dataguardian-postgres": {
-      "command": "python",
-      "args": ["<path_to_project>/mcp/servers/postgres_server.py"]
-    },
-    "dataguardian-dbt": {
-      "command": "python",
-      "args": ["<path_to_project>/mcp/servers/dbt_server.py"]
-    },
-    "dataguardian-airflow": {
-      "command": "python",
-      "args": ["<path_to_project>/mcp/servers/airflow_server.py"]
-    }
-  }
-}
-```
+`OPENAI_API_KEY` is also accepted. If LLM generation fails, the RCA service falls back to evidence synthesis. Keep credentials out of Git.
 
----
+## Try an incident
 
-## 🧪 Live Incident Simulation
-
-You can test DataGuardian's autonomous recovery by injecting realistic anomalies into live database tables:
+Use a disposable local demo database: these commands deliberately alter source tables, and reset reloads the seed data.
 
 ```bash
-# Inject 45% null values into order_status
-python scripts/simulate_incident.py --type null_spike
+# Choose one scenario
+python scripts/simulate_incident.py --incident null_spike
+# python scripts/simulate_incident.py --incident schema_drift
+# python scripts/simulate_incident.py --incident duplicates
 
-# Inject upstream column rename (postal_code_drifted) into customers
-python scripts/simulate_incident.py --type schema_drift
+# Detect the injected issue and emit an incident
+python scripts/run_quality_checks.py
+```
 
-# Inject duplicate payment transaction records
-python scripts/simulate_incident.py --type duplicates
+A nonzero exit from quality checks is expected when an injected issue is detected. In the dashboard, select the incident, trigger diagnosis, review the RCA, code diff, and sandbox results, then approve or reject the proposed patch. The API's `/api/simulate` route also supports simulation and runs quality checks after injection.
 
-# Reset all tables back to clean seed state
+After approval, rerun the transformations and tests to verify the actual warehouse outcome:
+
+```bash
+dbt run --project-dir dbt --profiles-dir dbt
+dbt test --project-dir dbt --profiles-dir dbt
+```
+
+Restore source tables when finished:
+
+```bash
 python scripts/simulate_incident.py --reset
 ```
 
-Once injected:
-1. Open the dashboard at `http://localhost:3000`.
-2. Observe the new incident ticket and trigger AI diagnosis.
-3. Review the AI-generated Root Cause Analysis (RCA) and side-by-side code diff.
-4. Click **Approve Fix** to observe safe remediation and pipeline recovery.
+Reset restores source data; it does not undo approved SQL file changes. Inspect model changes with Git, or use the backup copies under `dbt/.backups/` to restore a model before rebuilding.
 
----
+## MCP tools
 
-## 🔬 Testing & Quality Verification
+Three diagnostic servers let an MCP-compatible client inspect the project:
 
-Run the complete automated test suite (unit + end-to-end integration):
+| Server | Entry point | Tools cover |
+| --- | --- | --- |
+| PostgreSQL | `mcp/servers/postgres_server.py` | Schema inspection, sample rows, and read queries |
+| dbt | `mcp/servers/dbt_server.py` | Model source, contracts, and dependencies |
+| Airflow | `mcp/servers/airflow_server.py` | Pipeline structure and incident details |
 
-```bash
-# Run unit test suite
-python -m pytest tests/unit/
+Use [mcp/mcp_config.json](mcp/mcp_config.json) as a starting point. Set the Python executable and server script arguments to absolute paths for your machine, and align the database environment variables with your local warehouse. MCP clients launch these stdio servers; they are not HTTP services.
 
-# Run end-to-end integration test suite
-python -m pytest tests/integration/
+## Optional Airflow orchestration
 
-# Run all 76+ tests with coverage
-python -m pytest tests/
+[ecommerce_pipeline.py](airflow/dags/ecommerce_pipeline.py) defines daily ingestion, staging transformations, core transformations, and dbt tests, with a failure callback that records incidents.
+
+The Compose file includes Airflow initialization, webserver, and scheduler services. Before executing the DAG, prepare an Airflow image with the required ingestion dependencies and `dbt-postgres`, and configure its dbt profile to connect to `postgres:5432` inside Docker. The checked-in dbt profile targets host-side `localhost` and is intended for the quickstart above. The optional Airflow web UI is mapped to port `8081`.
+
+## Project layout
+
+```text
+agent/          LangGraph workflow, diagnostic tools, RCA, patches, sandbox checks
+backend/        FastAPI routes and warehouse quality rules
+dashboard/     Next.js operations dashboard
+airflow/       E-commerce DAG and failure callbacks
+dbt/           Staging and core SQL models, profiles, and data tests
+mcp/           Three diagnostic MCP servers and client configuration
+scripts/       Database initialization, ingestion, quality checks, simulations
+data/          CSV seed files and incident simulation datasets
+docs/images/   README infographics and generation prompts
+tests/         Unit tests and mocked integration scenarios
 ```
 
----
+## Verification
 
-## 📄 License
-MIT License. Built for autonomous data engineering reliability.
+```bash
+python -m pytest tests/unit/
+python -m pytest tests/integration/
+```
+
+The integration suite uses mocks for parts of the incident lifecycle; passing it does not establish that a deployed Airflow pipeline recovered. Use the local demo and dbt checks above to verify behavior against your warehouse.
+
+## Current scope
+
+DataGuardian is a local development prototype with implemented incident detection, investigation, model patching, sandbox assertions, and review actions.
+
+- **Recovery is simulated.** `trigger_pipeline_recovery()` returns a success payload; it does not submit or verify an Airflow DAG run.
+- **Workflow checkpoints are in memory.** Agent state does not survive an API process restart.
+- **The sandbox shares the warehouse.** It uses a separate schema and reads source data; it is not a separate database or security boundary, and it does not run the full dbt test suite.
+- **Approval requires careful review.** The graph proceeds from sandbox testing to the review gate; it does not enforce sandbox success as a hard prerequisite to patch application.
+- **Backups are file copies.** The remediation tools include backup and rollback helpers; file writes are not transactional deployment operations.
+- **Deployment hardening remains.** Authentication, restricted CORS, durable checkpoints, stricter validation gates, and real orchestration recovery are future work before production use.
+
+See the [implementation plan](IMPLEMENTATION_PLAN.md) for additional project context.
