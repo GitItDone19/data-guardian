@@ -290,7 +290,7 @@ export default function IncidentDetailModal({
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[94vw] max-w-5xl xl:max-w-6xl p-0 bg-card border border-border text-foreground overflow-hidden max-h-[92vh] flex flex-col rounded-[6px] shadow-2xl transition-colors">
+      <DialogContent className="dataops-theme dataops-dialog w-[94vw] max-w-5xl xl:max-w-6xl p-0 bg-card border border-border text-foreground overflow-hidden max-h-[92vh] flex flex-col rounded-[6px] shadow-2xl transition-colors">
         {/* Header: Run Agent is ONLY here if pipeline has NOT executed yet */}
         <div className="p-5 pr-14 border-b border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">

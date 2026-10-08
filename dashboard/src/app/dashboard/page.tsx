@@ -1,5 +1,7 @@
 "use client";
 
+import "./workspace.css";
+
 import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
@@ -26,6 +28,11 @@ export default function DashboardPage() {
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeNavTab, setActiveNavTab] = useState<string>("incidents");
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -153,8 +160,23 @@ export default function DashboardPage() {
   const hasWaitingApproval = incidents.some((i) => i.status === "WAITING_FOR_APPROVAL");
   const openCount = pipelineStatus?.open_incidents_count ?? incidents.filter((i) => i.status !== "RESOLVED").length;
 
+  if (!mounted) {
+    return (
+      <div className="dataops-theme dataops-shell flex min-h-screen bg-background text-foreground">
+        <div className="w-56 shrink-0 bg-card border-r border-border h-screen" />
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="h-12 border-b border-border bg-card" />
+          <div className="p-6 space-y-4">
+            <div className="h-24 rounded-[6px] border border-border bg-card" />
+            <div className="h-64 rounded-[6px] border border-border bg-card" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen bg-background text-foreground transition-colors">
+    <div suppressHydrationWarning className="dataops-theme dataops-shell flex min-h-screen bg-background text-foreground transition-colors">
       {/* Left Sidebar */}
       <Sidebar
         activeTab={activeNavTab}
@@ -166,6 +188,7 @@ export default function DashboardPage() {
       {/* Main Content Pane */}
       <div className="flex-1 flex flex-col min-w-0">
         <Header
+          viewLabel={({ incidents: "Incidents & self-healing", metrics: "Pipeline metrics", lineage: "Data quality", database: "PostgreSQL tables", sandbox: "Staging sandbox", audit: "Agent audit log" } as Record<string, string>)[activeNavTab]}
           apiOnline={apiOnline}
           activeIncidentsCount={openCount}
           hasWaitingApproval={hasWaitingApproval}
@@ -177,7 +200,9 @@ export default function DashboardPage() {
           }}
         />
 
-        <main className="flex-1 p-6 max-w-screen-2xl w-full mx-auto space-y-6">
+        <main className="dataops-main flex-1 w-full mx-auto space-y-6">
+          <div className="workspace-eyebrow">WORKSPACE / {activeNavTab === "incidents" ? "01" : activeNavTab === "metrics" ? "02" : activeNavTab === "lineage" ? "03" : activeNavTab === "database" ? "04" : activeNavTab === "sandbox" ? "05" : "06"}</div>
+          {!apiOnline && <div className="workspace-notice"><span className="workspace-live-dot" /><strong>Demo workspace</strong><span>Sample data. No backend or database is connected.</span></div>}
           {/* VIEW: Incidents & Triage */}
           {activeNavTab === "incidents" && (
             <>
@@ -228,10 +253,10 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-semibold text-[#ededed] tracking-tight">
+                  <h1 className="text-xl font-semibold text-foreground tracking-tight">
                     Pipeline metrics
                   </h1>
-                  <p className="text-xs text-[#a0a0a0] mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Execution SLA, task lineage health, and contract verification status.
                   </p>
                 </div>
@@ -247,7 +272,7 @@ export default function DashboardPage() {
               <PipelineCharts />
 
               {/* Tasks Lineage Table */}
-              <div className="rounded-[6px] border border-border bg-card overflow-hidden">
+              <div className="rounded-[6px] border border-border bg-card overflow-x-auto">
                 <div className="p-4 border-b border-border">
                   <h2 className="text-sm font-semibold text-foreground">Pipeline tasks</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -292,67 +317,72 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* VIEW: dbt DAG Lineage */}
+          {/* VIEW: Data Quality */}
           {activeNavTab === "lineage" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-xl font-semibold text-[#ededed] tracking-tight">
-                    dbt DAG lineage
-                  </h1>
-                  <p className="text-xs text-[#a0a0a0] mt-1">
-                    Directed dependency graph of physical raw sources, views, and dimensional models.
-                  </p>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground tracking-tight">Data quality</h1>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Review the checks that protect warehouse models and spot failures before they reach reports.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 border border-border bg-card divide-x divide-y lg:divide-y-0 divide-border">
+                {[
+                  { label: "Checks monitored", value: "04", note: "Across the demo models" },
+                  { label: "Passing", value: "03", note: "Latest sample run" },
+                  { label: "Needs attention", value: "01", note: "Schema drift detected" },
+                  { label: "Models affected", value: "01", note: "stg_customers" },
+                ].map((item) => (
+                  <div className="p-5" key={item.label}>
+                    <div className="text-xs text-muted-foreground">{item.label}</div>
+                    <div className="mt-3 text-3xl font-medium tracking-tight">{item.value}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">{item.note}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border border-border bg-card">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-5">
+                  <div>
+                    <h2 className="text-sm font-medium">Recent quality checks</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">Example checks for the ecommerce warehouse.</p>
+                  </div>
+                  <span className="workspace-eyebrow">ILLUSTRATIVE SAMPLE</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-[13px]">
+                    <thead><tr className="border-b border-border bg-secondary text-muted-foreground text-xs">
+                      <th className="py-3 px-4 font-normal">Check</th><th className="py-3 px-4 font-normal">Model</th>
+                      <th className="py-3 px-4 font-normal">Rule</th><th className="py-3 px-4 font-normal">Result</th>
+                      <th className="py-3 px-4 font-normal">Status</th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-border">
+                      {[
+                        { check: "Required customer field", model: "stg_customers", rule: "postal_code is present", result: "Column changed", status: "Needs review", failed: true },
+                        { check: "Unique customer key", model: "stg_customers", rule: "customer_id is unique", result: "Passed", status: "Passing", failed: false },
+                        { check: "Order total is non-negative", model: "fact_orders", rule: "total_amount ≥ 0", result: "Passed", status: "Passing", failed: false },
+                        { check: "Payment ID is present", model: "stg_payments", rule: "payment_id is not null", result: "Passed", status: "Passing", failed: false },
+                      ].map((item) => (
+                        <tr key={item.check} className="hover:bg-secondary/50 transition-colors">
+                          <td className="px-4 py-4 font-medium">{item.check}</td>
+                          <td className="px-4 py-4 font-mono text-xs text-muted-foreground">{item.model}</td>
+                          <td className="px-4 py-4 text-muted-foreground">{item.rule}</td>
+                          <td className="px-4 py-4 text-muted-foreground">{item.result}</td>
+                          <td className="px-4 py-4"><span className={`inline-flex items-center gap-2 text-xs ${item.failed ? "text-amber-600 dark:text-amber-400" : "text-primary"}`}>
+                            <span className={`size-1.5 rounded-full ${item.failed ? "bg-amber-500" : "bg-primary"}`} />{item.status}
+                          </span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              <div className="rounded-[6px] border border-[#2e2e2e] bg-[#1c1c1c] p-6 space-y-6">
-                <div>
-                  <div className="text-xs text-[#707070] mb-3">Model dependency flow</div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#38bdf8]">
-                        raw.customers
-                      </span>
-                      <span className="text-[#707070]">→</span>
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#3ecf8e]">
-                        staging.stg_customers
-                      </span>
-                      <span className="text-[#707070]">→</span>
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#ededed]">
-                        core.dim_customers
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#38bdf8]">
-                        raw.orders
-                      </span>
-                      <span className="text-[#707070]">→</span>
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#3ecf8e]">
-                        staging.stg_orders
-                      </span>
-                      <span className="text-[#707070]">→</span>
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#ededed]">
-                        core.fact_orders
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#38bdf8]">
-                        raw.payments
-                      </span>
-                      <span className="text-[#707070]">→</span>
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#3ecf8e]">
-                        staging.stg_payments
-                      </span>
-                      <span className="text-[#707070]">→</span>
-                      <span className="px-2.5 py-1.5 rounded-[4px] bg-[#232323] border border-[#2e2e2e] font-mono text-[#ededed]">
-                        analytics.fact_revenue
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              <div className="flex flex-wrap items-center justify-between gap-4 border border-border bg-secondary/50 p-5">
+                <div><div className="text-sm font-medium">One check needs investigation</div>
+                  <p className="mt-1 text-xs text-muted-foreground">The customer address column differs from the model contract. Review the related incident.</p></div>
+                <button onClick={() => setActiveNavTab("incidents")} className="border border-border bg-card px-4 py-2 text-xs font-medium hover:bg-secondary">Open incident queue →</button>
               </div>
             </div>
           )}
@@ -362,26 +392,26 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-semibold text-[#ededed] tracking-tight">
+                  <h1 className="text-xl font-semibold text-foreground tracking-tight">
                     PostgreSQL tables
                   </h1>
-                  <p className="text-xs text-[#a0a0a0] mt-1">
-                    Database schemas on localhost:5433 (PostgreSQL 15).
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Illustrative PostgreSQL inventory for the local development warehouse.
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[6px] border border-[#2e2e2e] bg-[#1c1c1c] overflow-hidden">
+              <div className="rounded-[6px] border border-border bg-card overflow-x-auto">
                 <table className="w-full text-left border-collapse text-[13px]">
                   <thead>
-                    <tr className="border-b border-[#2e2e2e] bg-[#1f1f1f] text-[#a0a0a0] text-xs">
+                    <tr className="border-b border-border bg-secondary text-muted-foreground text-xs">
                       <th className="py-2.5 px-4 font-normal">Schema</th>
                       <th className="py-2.5 px-4 font-normal">Table</th>
                       <th className="py-2.5 px-4 font-normal">Approx rows</th>
                       <th className="py-2.5 px-4 font-normal">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#2e2e2e]">
+                  <tbody className="divide-y divide-border">
                     {[
                       { schema: "raw", table: "customers", rows: "5,000", status: "Active" },
                       { schema: "raw", table: "orders", rows: "5,000", status: "Active" },
@@ -392,19 +422,19 @@ export default function DashboardPage() {
                       { schema: "core", table: "fact_orders", rows: "5,000", status: "Materialized" },
                       { schema: "staging_sandbox", table: "stg_customers", rows: "100 (test)", status: "Isolated" },
                     ].map((row, idx) => (
-                      <tr key={idx} className="h-11 hover:bg-[#222222] transition-colors">
-                        <td className="py-2.5 px-4 text-xs font-mono text-[#a0a0a0]">
+                      <tr key={idx} className="h-11 hover:bg-secondary transition-colors">
+                        <td className="py-2.5 px-4 text-xs font-mono text-muted-foreground">
                           {row.schema}
                         </td>
-                        <td className="py-2.5 px-4 text-xs font-mono font-medium text-[#ededed]">
+                        <td className="py-2.5 px-4 text-xs font-mono font-medium text-foreground">
                           {row.table}
                         </td>
-                        <td className="py-2.5 px-4 text-xs text-[#a0a0a0]">
+                        <td className="py-2.5 px-4 text-xs text-muted-foreground">
                           {row.rows}
                         </td>
                         <td className="py-2.5 px-4">
-                          <span className="inline-flex items-center gap-1.5 text-xs text-[#3ecf8e]">
-                            <span className="size-1.5 rounded-full bg-[#3ecf8e]" />
+                          <span className="inline-flex items-center gap-1.5 text-xs text-primary">
+                            <span className="size-1.5 rounded-full bg-primary" />
                             {row.status}
                           </span>
                         </td>
@@ -421,30 +451,30 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-semibold text-[#ededed] tracking-tight">
+                  <h1 className="text-xl font-semibold text-foreground tracking-tight">
                     Staging sandbox
                   </h1>
-                  <p className="text-xs text-[#a0a0a0] mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Air-gapped schema execution environment for remedial code patch verification.
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[6px] border border-[#2e2e2e] bg-[#1c1c1c] p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-[#ededed]">Isolation architecture</h2>
-                <p className="text-xs text-[#a0a0a0] leading-relaxed">
+              <div className="rounded-[6px] border border-border bg-card p-6 space-y-4">
+                <h2 className="text-sm font-semibold text-foreground">Isolation architecture</h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   When a data anomaly is detected, candidate dbt model patches are never applied directly to production.
-                  The agent replicates target schema structures inside <span className="font-mono text-[#ededed]">staging_sandbox</span>, executes the proposed SQL fix, and validates row count and schema contracts before presenting the patch for human approval.
+                  The agent replicates target schema structures inside <span className="font-mono text-foreground">staging_sandbox</span>, executes the proposed SQL fix, and validates row count and schema contracts before presenting the patch for human approval.
                 </p>
 
-                <div className="border-t border-[#2e2e2e] pt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div className="p-3.5 rounded-[6px] bg-[#232323] border border-[#2e2e2e]">
-                    <div className="font-medium text-[#ededed] mb-1">Row count non-zero assertion</div>
-                    <div className="text-[#707070]">Verifies the patch materializes records without truncation.</div>
+                <div className="border-t border-border pt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="p-3.5 rounded-[6px] bg-secondary border border-border">
+                    <div className="font-medium text-foreground mb-1">Row count non-zero assertion</div>
+                    <div className="text-muted-foreground">Verifies the patch materializes records without truncation.</div>
                   </div>
-                  <div className="p-3.5 rounded-[6px] bg-[#232323] border border-[#2e2e2e]">
-                    <div className="font-medium text-[#ededed] mb-1">dbt schema contract check</div>
-                    <div className="text-[#707070]">Ensures all columns and types match the target dimensional schema.</div>
+                  <div className="p-3.5 rounded-[6px] bg-secondary border border-border">
+                    <div className="font-medium text-foreground mb-1">dbt schema contract check</div>
+                    <div className="text-muted-foreground">Ensures all columns and types match the target dimensional schema.</div>
                   </div>
                 </div>
               </div>
@@ -456,42 +486,42 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-semibold text-[#ededed] tracking-tight">
+                  <h1 className="text-xl font-semibold text-foreground tracking-tight">
                     Agent audit log
                   </h1>
-                  <p className="text-xs text-[#a0a0a0] mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Immutable event log of agent investigations, diagnostic tool runs, and approvals.
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[6px] border border-[#2e2e2e] bg-[#1c1c1c] overflow-hidden">
+              <div className="rounded-[6px] border border-border bg-card overflow-x-auto">
                 <table className="w-full text-left border-collapse text-[13px]">
                   <thead>
-                    <tr className="border-b border-[#2e2e2e] bg-[#1f1f1f] text-[#a0a0a0] text-xs">
+                    <tr className="border-b border-border bg-secondary text-muted-foreground text-xs">
                       <th className="py-2.5 px-4 font-normal">Timestamp</th>
                       <th className="py-2.5 px-4 font-normal">Action</th>
                       <th className="py-2.5 px-4 font-normal">Tool</th>
                       <th className="py-2.5 px-4 font-normal">Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#2e2e2e]">
+                  <tbody className="divide-y divide-border">
                     {[
                       { time: "Just now", action: "HEARTBEAT_CHECK", tool: "airflow_server", details: "Pipeline schedule nominal (@daily)" },
                       { time: "10m ago", action: "METRIC_COLLECTION", tool: "postgres_server", details: "Warehouse statistics refreshed for 8 tables" },
                       { time: "25m ago", action: "SANDBOX_VERIFIED", tool: "dbt_server", details: "staging_sandbox.stg_customers schema test passed" },
                     ].map((item, idx) => (
-                      <tr key={idx} className="h-11 hover:bg-[#222222] transition-colors">
-                        <td className="py-2.5 px-4 text-xs font-mono text-[#707070]">
+                      <tr key={idx} className="h-11 hover:bg-secondary transition-colors">
+                        <td className="py-2.5 px-4 text-xs font-mono text-muted-foreground">
                           {item.time}
                         </td>
-                        <td className="py-2.5 px-4 text-xs font-mono text-[#ededed]">
+                        <td className="py-2.5 px-4 text-xs font-mono text-foreground">
                           {item.action}
                         </td>
-                        <td className="py-2.5 px-4 text-xs font-mono text-[#a0a0a0]">
+                        <td className="py-2.5 px-4 text-xs font-mono text-muted-foreground">
                           {item.tool}
                         </td>
-                        <td className="py-2.5 px-4 text-xs text-[#a0a0a0]">
+                        <td className="py-2.5 px-4 text-xs text-muted-foreground">
                           {item.details}
                         </td>
                       </tr>

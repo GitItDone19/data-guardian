@@ -28,7 +28,7 @@ export default function Sidebar({
   apiOnline,
 }: SidebarProps) {
   return (
-    <aside className="w-56 shrink-0 bg-card border-r border-border flex flex-col justify-between h-screen sticky top-0 select-none transition-colors">
+    <aside className="dataops-sidebar w-56 shrink-0 bg-card border-r border-border flex flex-col justify-between h-screen sticky top-0 select-none transition-colors">
       {/* Top Header & Project Switcher */}
       <div>
         {/* Brand Header */}
@@ -59,6 +59,7 @@ export default function Sidebar({
             </div>
             <div className="space-y-0.5">
               <button
+                aria-current={activeTab === "incidents" ? "page" : undefined}
                 onClick={() => setActiveTab("incidents")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "incidents"
@@ -80,6 +81,7 @@ export default function Sidebar({
               </button>
 
               <button
+                aria-current={activeTab === "metrics" ? "page" : undefined}
                 onClick={() => setActiveTab("metrics")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "metrics"
@@ -94,6 +96,7 @@ export default function Sidebar({
               </button>
 
               <button
+                aria-current={activeTab === "lineage" ? "page" : undefined}
                 onClick={() => setActiveTab("lineage")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "lineage"
@@ -103,7 +106,7 @@ export default function Sidebar({
               >
                 <div className="flex items-center gap-2.5">
                   <Layers className="size-4 text-muted-foreground" strokeWidth={1.5} />
-                  <span>dbt DAG lineage</span>
+                  <span>Data quality</span>
                 </div>
               </button>
             </div>
@@ -116,6 +119,7 @@ export default function Sidebar({
             </div>
             <div className="space-y-0.5">
               <button
+                aria-current={activeTab === "database" ? "page" : undefined}
                 onClick={() => setActiveTab("database")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "database"
@@ -130,6 +134,7 @@ export default function Sidebar({
               </button>
 
               <button
+                aria-current={activeTab === "sandbox" ? "page" : undefined}
                 onClick={() => setActiveTab("sandbox")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "sandbox"
@@ -144,6 +149,7 @@ export default function Sidebar({
               </button>
 
               <button
+                aria-current={activeTab === "audit" ? "page" : undefined}
                 onClick={() => setActiveTab("audit")}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors cursor-pointer ${
                   activeTab === "audit"

@@ -19,6 +19,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderProps {
   apiOnline: boolean;
+  viewLabel?: string;
   activeIncidentsCount?: number;
   hasWaitingApproval?: boolean;
   incidents?: IncidentSummary[];
@@ -28,6 +29,7 @@ interface HeaderProps {
 
 export default function Header({
   apiOnline,
+  viewLabel = "Incidents & self-healing",
   activeIncidentsCount = 0,
   hasWaitingApproval = false,
   incidents = [],
@@ -103,7 +105,7 @@ export default function Header({
   }
 
   return (
-    <header className="h-12 px-5 bg-card border-b border-border flex items-center justify-between gap-4 sticky top-0 z-20 select-none transition-colors">
+    <header className="dataops-header h-12 px-5 bg-card border-b border-border flex items-center justify-between gap-4 sticky top-0 z-20 select-none transition-colors">
       {/* Breadcrumbs */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[13px]">
         <Link href="/" className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors" title="Go to Product Landing Page">
@@ -116,7 +118,7 @@ export default function Header({
         </div>
         <span className="text-muted-foreground/50">/</span>
         <span className="text-foreground font-medium flex items-center gap-2">
-          <span>Incidents &amp; self-healing</span>
+          <span>{viewLabel}</span>
           {hasWaitingApproval && (
             <span className="size-1.5 rounded-full bg-[#f59e0b]" title="Incident awaiting review" />
           )}

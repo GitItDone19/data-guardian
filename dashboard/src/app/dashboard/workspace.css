@@ -1,0 +1,64 @@
+.dataops-theme {
+  --background:#f7f6f2; --foreground:#242c28; --card:#fffefa; --card-foreground:#242c28;
+  --popover:#fffefa; --popover-foreground:#242c28; --secondary:#edf0e6; --secondary-foreground:#242c28;
+  --muted:#edf0e6; --muted-foreground:#626a62; --muted-faint:#626a62;
+  --border:#d9ddd3; --input:#fffefa; --primary:#00834c; --primary-foreground:#fffefa;
+  --accent:#edf0e6; --accent-foreground:#242c28; --ring:#00c573;
+  background:var(--background); color:var(--foreground);
+}
+.dark .dataops-theme {
+  --background:#191e1a; --foreground:#e8e9e0; --card:#202720; --card-foreground:#e8e9e0;
+  --popover:#202720; --popover-foreground:#e8e9e0; --secondary:#2a3429; --secondary-foreground:#e8e9e0;
+  --muted:#2a3429; --muted-foreground:#a6afa3; --muted-faint:#a6afa3;
+  --border:#394239; --input:#202720; --primary:#3ecf8e; --primary-foreground:#10261c;
+  --accent:#2a3429; --accent-foreground:#e8e9e0;
+}
+.dataops-main {max-width:1280px; padding:42px 48px 80px;}
+.dataops-main h1 {font-size:clamp(28px,3vw,40px); font-weight:500; line-height:1.15; letter-spacing:-1.5px;}
+.dataops-main h1 + p {font-size:14px; line-height:1.7; max-width:660px; margin-top:12px;}
+.workspace-eyebrow,.workspace-chart-note {font-family:var(--font-mono),monospace; font-size:10px; letter-spacing:1.8px; color:var(--muted-foreground);}
+.workspace-notice {display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; border-bottom:1px solid var(--border); padding:0 0 20px; font-size:12px; color:var(--muted-foreground);}
+.workspace-notice strong {font-weight:500; color:var(--foreground);}
+.workspace-live-dot {width:6px; height:6px; border-radius:50%; background:#00c573;}
+.dataops-sidebar {width:244px; background:var(--background);}
+.dataops-sidebar > div:first-child > div:first-child {height:76px; padding:0 26px;}
+.dataops-sidebar nav {padding:28px 16px;}
+.dataops-sidebar nav > div {margin-bottom:28px;}
+.dataops-sidebar nav > div > div:first-child {font-size:10px; letter-spacing:1px; text-transform:uppercase; margin-bottom:12px;}
+.dataops-sidebar nav button,.dataops-sidebar nav a {min-height:40px; border-radius:3px;}
+.dataops-sidebar nav button[aria-current=page] {background:var(--secondary); box-shadow:inset 2px 0 #00c573; color:var(--foreground);}
+.dataops-sidebar a[title] > div:first-child {background:#00c573; color:#10261c;}
+.dataops-header {height:76px; padding:0 32px; background:var(--background); position:relative;}
+.dataops-main table {min-width:560px;}
+.dataops-main th {font-family:var(--font-mono),monospace; font-size:10px; letter-spacing:.8px; text-transform:uppercase; padding-top:16px; padding-bottom:16px;}
+.dataops-main td {padding-top:18px; padding-bottom:18px;}
+.dataops-main :is(input,button,a):focus-visible,.dataops-dialog :is(button,a):focus-visible {outline:2px solid var(--ring); outline-offset:3px;}
+.dataops-dialog {border-radius:4px;}
+.dataops-dialog [data-slot=dialog-title] {font-size:22px; font-weight:500; letter-spacing:-.6px;}
+@media(min-width:1000px){.dataops-main > .rounded-\[6px\] {border-radius:3px;}}
+@media(max-width:1000px){
+ .dataops-main {padding:32px 24px 60px;}
+ .dataops-sidebar {width:210px;}
+ .dataops-header {padding:0 20px;}
+}
+@media(max-width:760px){
+ .dataops-shell {flex-direction:column;}
+ .dataops-sidebar {position:relative; width:100%; height:auto; border-right:0; border-bottom:1px solid var(--border);}
+ .dataops-sidebar > div:first-child > div:first-child {height:62px; padding:0 20px;}
+ .dataops-sidebar nav {display:flex; overflow-x:auto; gap:24px; padding:12px 16px; margin:0;}
+ .dataops-sidebar nav > div {margin:0; flex-shrink:0;}
+ .dataops-sidebar nav > div > div:first-child {display:none;}
+ .dataops-sidebar nav > div > div:last-child {display:flex; gap:6px;}
+ .dataops-sidebar nav button,.dataops-sidebar nav a {width:auto; white-space:nowrap; padding:8px 12px;}
+ .dataops-sidebar > div:last-child:not(:first-child) {display:none;}
+ .dataops-header {height:auto; min-height:64px; flex-wrap:wrap; padding:14px 20px; gap:12px;}
+ .dataops-header nav {font-size:11px; flex-wrap:wrap;}
+ .dataops-main {padding:28px 20px 48px;}
+ .dataops-main h1 {letter-spacing:-1px;}
+ .dataops-main .overflow-hidden {overflow-x:auto;}
+}
+@media(prefers-reduced-motion:reduce){.dataops-theme *{transition:none!important;animation:none!important;}}
+.dataops-shell {overflow-x:clip;}
+.dataops-main table {position:relative;}
+.dataops-main > * {min-width:0;}
+@media(max-width:760px){.dataops-sidebar nav{max-width:100vw;} .dataops-main .flex.items-center.justify-between.gap-4{flex-wrap:wrap;}}

@@ -1,740 +1,113 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Shield,
-  ShieldCheck,
-  Layers,
-  Terminal,
-  ArrowRight,
-  Play,
-  AlertTriangle,
-  CheckCircle2,
-  Zap,
-  GitBranch,
-  Code2,
-  Copy,
-  Check,
-  Cpu,
-  Boxes,
-  Bot,
-  ChevronDown,
-  Workflow,
-  Lock,
-} from "lucide-react";
-import { fetchHealth } from "@/lib/api";
-import { toast } from "sonner";
+import { ArrowRight, ArrowUpRight, GitBranch, Check, Minus, Plus } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import styles from "./landing.module.css";
+
+export const metadata: Metadata = {
+  title: "DataGuardian — Understand pipeline failures. Review the fix.",
+  description: "An open-source DataOps prototype that brings incident evidence, proposed dbt changes, and sandbox checks into one engineer review workflow.",
+};
+
+const github = "https://github.com/GitItDone19/data-guardian";
+const steps = [
+  ["Detect", "Quality checks or task failures become an incident."],
+  ["Investigate", "Inspect logs, source columns, sample rows, and model code."],
+  ["Propose", "Explain the cause and prepare a reviewable SQL change."],
+  ["Test", "Evaluate a proposed view in the staging_sandbox schema."],
+  ["Review", "An engineer examines the evidence and decides what to apply."],
+];
+const stack = [
+  ["PostgreSQL", "The warehouse", "Raw data, transformed models, incident records, and sandbox views."],
+  ["dbt", "The transformations", "Staging SQL, core models, and data quality tests."],
+  ["LangGraph", "The investigation", "A stateful workflow that gathers evidence and prepares a proposed fix."],
+  ["FastAPI + Next.js", "The review surface", "API endpoints and a console for inspecting incidents and changes."],
+];
 
 export default function LandingPage() {
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [activeCodeTab, setActiveCodeTab] = useState<"mcp" | "agent" | "dbt" | "docker">("mcp");
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [isHealthy, setIsHealthy] = useState<boolean>(true);
-
-  useEffect(() => {
-    fetchHealth()
-      .then((res) => setIsHealthy(res.status === "HEALTHY"))
-      .catch(() => setIsHealthy(true)); // Fallback cleanly to healthy operational status for public visitors
-  }, []);
-
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedCode(id);
-    toast.success("Copied to clipboard");
-    setTimeout(() => setCopiedCode(null), 2000);
-  };
-
-
-  const codeSnippets = {
-    mcp: `{
-  "mcpServers": {
-    "dataguardian-warehouse": {
-      "command": "python",
-      "args": ["-m", "mcp.servers.postgres_server"],
-      "env": {
-        "POSTGRES_HOST": "warehouse.production.internal",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_DB": "analytics_warehouse"
-      }
-    },
-    "dataguardian-dbt": {
-      "command": "python",
-      "args": ["-m", "mcp.servers.dbt_server"],
-      "env": {
-        "DBT_PROJECT_DIR": "./dbt"
-      }
-    }
-  }
-}`,
-    agent: `from langgraph.graph import StateGraph, END
-from dataguardian.engine.diagnostics import inspect_catalog, parse_traceback
-from dataguardian.engine.sandbox import execute_sandbox_validation
-
-workflow = StateGraph(IncidentState)
-
-# Directed Incident Triage & Remediation Graph
-workflow.add_node("diagnose_root_cause", diagnose_incident_node)
-workflow.add_node("generate_dbt_patch", synthesize_model_patch_node)
-workflow.add_node("sandbox_verification", execute_sandbox_validation)
-workflow.add_node("human_approval_checkpoint", await_human_review_node)
-
-workflow.set_entry_point("diagnose_root_cause")
-workflow.add_edge("diagnose_root_cause", "generate_dbt_patch")
-workflow.add_edge("generate_dbt_patch", "sandbox_verification")
-workflow.add_edge("sandbox_verification", "human_approval_checkpoint")`,
-    dbt: `-- models/staging/stg_customers.sql
--- Automated Backward-Compatible Patch
-select
-    customer_id,
-    -- Handle schema drift from upstream feed without breaking downstream models
-    coalesce(postal_code_drifted, customer_zip_code_prefix) as zip_code,
-    customer_city as city,
-    customer_state as state
-from {{ source('raw', 'customers') }};`,
-    docker: `version: '3.8'
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: dataguardian_postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  airflow-webserver:
-    image: apache/airflow:2.9.2
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres`,
-  };
-
-  const scenariosData = {
-    schema_drift: {
-      title: "Upstream Schema Drift",
-      subtitle: "Column renamed from customer_zip_code_prefix to postal_code_drifted in raw feed",
-      table: "raw.customers",
-      severity: "HIGH IMPACT",
-      failureReason: "Compilation failure: column 'customer_zip_code_prefix' not found in raw.customers.",
-      fixAction: "Reconcile schema with backwards-compatible COALESCE projection in staging model.",
-      sandboxTest: "staging_sandbox.stg_customers: 100 sample records checked. 0 contract violations.",
-    },
-    null_spike: {
-      title: "Data Quality Threshold Breach",
-      subtitle: "raw.orders.order_status null rate surged to 45.54% (exceeding SLA threshold)",
-      table: "raw.orders",
-      severity: "CRITICAL",
-      failureReason: "Assertion failure: 2,277 / 5,000 orders missing status code.",
-      fixAction: "Isolate corrupt batch to quarantine table and apply default categorical fallback.",
-      sandboxTest: "staging_sandbox.stg_orders: Null rate verified at 0.00%. Mart tests passing.",
-    },
-    duplicates: {
-      title: "Primary Key Collision Anomaly",
-      subtitle: "Duplicate customer_id records detected during incremental stream ingestion",
-      table: "raw.customers",
-      severity: "CRITICAL",
-      failureReason: "Uniqueness test failure: 12 duplicate keys violated primary key constraint.",
-      fixAction: "Apply deterministic deduplication window function over updated_at timestamp.",
-      sandboxTest: "staging_sandbox.dim_customers: Uniqueness constraint passed with zero collisions.",
-    },
-  };
-
   return (
-    <div className="min-h-screen bg-[#171717] text-[#ededed] font-sans selection:bg-[#3ecf8e]/20 selection:text-[#3ecf8e] relative overflow-x-hidden">
-
-
-      {/* TOP NAVIGATION BAR */}
-      <header className="sticky top-0 z-50 h-14 backdrop-blur-md bg-[#171717]/85 border-b border-[#2e2e2e] px-4 sm:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="size-7 rounded-[6px] bg-[#3ecf8e] flex items-center justify-center text-[#0e0e0e] shadow-sm shadow-[#3ecf8e]/20 group-hover:scale-105 transition-transform">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
-                <path d="M12 2L2 19.5h9L9 22l13-10h-9l3-10z" />
-              </svg>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm tracking-tight text-[#ededed]">
-                DataGuardian
-              </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#232323] text-[#a0a0a0] border border-[#2e2e2e]">
-                v1.0
-              </span>
-            </div>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-6 text-xs text-[#a0a0a0]">
-            <a href="#architecture" className="hover:text-[#ededed] transition-colors">
-              How It Works
-            </a>
-            <a href="#interactive-demo" className="hover:text-[#ededed] transition-colors">
-              Live Walkthrough
-            </a>
-            <a href="#features" className="hover:text-[#ededed] transition-colors">
-              Core Platform
-            </a>
-            <a href="#mcp" className="hover:text-[#ededed] transition-colors">
-              MCP Standard
-            </a>
-            <a href="#faq" className="hover:text-[#ededed] transition-colors">
-              FAQ
-            </a>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Production Status Badge */}
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-[#1c1c1c] border border-[#2e2e2e] text-[11px] text-[#a0a0a0]">
-            <span className="size-2 rounded-full bg-[#3ecf8e] shadow-sm shadow-[#3ecf8e]" />
-            <span className="font-mono">
-              {isHealthy ? "All Systems Operational" : "Service Active"}
-            </span>
-          </div>
-
-          <a
-            href="https://github.com/GitItDone19/data-guardian"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-colors"
-          >
-            <GitBranch className="size-3.5 text-muted-foreground" />
-            <span>GitHub</span>
-          </a>
-
+    <div className={styles.page}>
+      <a className={styles.skip} href="#main">Skip to content</a>
+      <header className={styles.header}>
+        <Link href="/" className={styles.brand} aria-label="DataGuardian home"><span className={styles.logo} aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 19.5h9L9 22l13-10h-9l3-10z" /></svg></span>DataGuardian<span className={styles.wordmarkNote}>/ data reliability</span></Link>
+        <nav aria-label="Main navigation" className={styles.nav}>
+          <a href="#how-it-works">How it works</a>
+          <a href={github}>GitHub <ArrowUpRight size={13} /></a>
           <ThemeToggle />
-
-          <Link
-            id="nav-launch-console-btn"
-            href="/dashboard"
-            className="h-8 px-3.5 rounded-[6px] bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-primary/20 transition-all cursor-pointer"
-          >
-            <span>Launch Console</span>
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
+          <Link className={styles.navCta} href="/dashboard">Open demo <ArrowUpRight size={14} /></Link>
+        </nav>
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-16 sm:pt-24 pb-16 px-4 sm:px-8 max-w-6xl mx-auto text-center">
-        {/* Engineering Release Pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1c1c1c] border border-[#2e2e2e] text-xs text-[#a0a0a0] mb-6 shadow-sm">
-          <span className="size-1.5 rounded-full bg-[#3ecf8e]" />
-          <span>Automated DataOps Reliability</span>
-          <span className="text-[#404040]">•</span>
-          <span className="text-[#ededed] font-medium">Built for Apache Airflow, dbt &amp; PostgreSQL</span>
-        </div>
-
-        {/* Primary Semantic H1 Heading */}
-        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#ededed] max-w-4xl mx-auto leading-[1.15]">
-          Your Pipeline Broke.{" "}
-          <span className="text-[#3ecf8e]">
-            DataGuardian Already Fixed It.
-          </span>
-        </h1>
-
-        <p className="mt-5 text-sm sm:text-base text-[#a0a0a0] max-w-2xl mx-auto leading-relaxed">
-          Autonomous root cause diagnosis, sandbox-verified patches, and one-click deployment — no war rooms, no 3 AM pages.
-        </p>
-
-        {/* CTAs */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            id="hero-launch-console-btn"
-            href="/dashboard"
-            className="h-10 px-5 rounded-[6px] bg-[#3ecf8e] hover:bg-[#00c573] text-[#0e0e0e] text-sm font-semibold flex items-center gap-2 shadow-lg shadow-[#3ecf8e]/15 transition-all cursor-pointer"
-          >
-            <span>Open Operational Console</span>
-            <ArrowRight className="size-4" />
-          </Link>
-
-          <a
-            href="#interactive-demo"
-            className="h-10 px-4 rounded-[6px] bg-[#232323] hover:bg-[#282828] border border-[#2e2e2e] hover:border-[#363636] text-sm font-medium text-[#ededed] flex items-center gap-2 transition-colors cursor-pointer"
-          >
-            <Play className="size-3.5 text-[#3ecf8e] fill-[#3ecf8e]" />
-            <span>Interactive Demo</span>
-          </a>
-
-          <button
-            onClick={() => handleCopy("git clone https://github.com/GitItDone19/data-guardian.git", "clone-cmd")}
-            className="h-10 px-3.5 rounded-[6px] bg-[#1c1c1c] hover:bg-[#232323] border border-[#2e2e2e] text-xs font-mono text-[#a0a0a0] hover:text-[#ededed] flex items-center gap-2 transition-colors cursor-pointer"
-            title="Copy clone command"
-          >
-            <Terminal className="size-3.5 text-[#707070]" />
-            <span>git clone data-guardian</span>
-            {copiedCode === "clone-cmd" ? (
-              <Check className="size-3.5 text-[#3ecf8e]" />
-            ) : (
-              <Copy className="size-3.5 text-[#707070]" />
-            )}
-          </button>
-        </div>
-
-        {/* Key Engineering Proof Metrics */}
-        <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
-          <div className="p-4 rounded-[6px] bg-[#1c1c1c] border border-[#2e2e2e] hover:border-[#363636] transition-colors">
-            <div className="text-2xl font-bold font-mono text-[#3ecf8e]">&lt; 45s</div>
-            <div className="text-xs text-[#ededed] font-medium mt-1">Mean Time to Triage</div>
-            <div className="text-[11px] text-[#707070] mt-0.5">Automated detection to patch synthesis</div>
-          </div>
-
-          <div className="p-4 rounded-[6px] bg-[#1c1c1c] border border-[#2e2e2e] hover:border-[#363636] transition-colors">
-            <div className="text-2xl font-bold font-mono text-[#38bdf8]">0 Mutations</div>
-            <div className="text-xs text-[#ededed] font-medium mt-1">Air-Gapped Sandbox</div>
-            <div className="text-[11px] text-[#707070] mt-0.5">Production data remains untouched</div>
-          </div>
-
-          <div className="p-4 rounded-[6px] bg-[#1c1c1c] border border-[#2e2e2e] hover:border-[#363636] transition-colors">
-            <div className="text-2xl font-bold font-mono text-[#f59e0b]">1-Click</div>
-            <div className="text-xs text-[#ededed] font-medium mt-1">Human Governance</div>
-            <div className="text-[11px] text-[#707070] mt-0.5">Full Git diffs and empirical evidence</div>
-          </div>
-
-          <div className="p-4 rounded-[6px] bg-[#1c1c1c] border border-[#2e2e2e] hover:border-[#363636] transition-colors">
-            <div className="text-2xl font-bold font-mono text-[#ededed]">MCP Native</div>
-            <div className="text-xs text-[#ededed] font-medium mt-1">Open Protocol Standard</div>
-            <div className="text-[11px] text-[#707070] mt-0.5">Compatible with Cursor &amp; Claude</div>
-          </div>
-        </div>
-
-      </section>
-
-      {/* 5-STAGE AUTONOMOUS LIFECYCLE / ARCHITECTURE */}
-      <section id="architecture" className="py-20 px-4 sm:px-8 max-w-6xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c1c1c] border border-[#2e2e2e] text-xs text-[#3ecf8e] mb-3">
-            <Workflow className="size-3" />
-            <span>Closed-Loop Architecture</span>
-          </div>
-          <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-[#ededed]">
-            The 5-Stage Autonomous Lifecycle
-          </h2>
-          <p className="mt-3 text-xs sm:text-sm text-[#a0a0a0]">
-            Deterministic recovery without manual script hacking or dangerous production hotfixes.
-          </p>
-        </div>
-
-        <div className="relative">
-          {/* Connector Line behind steps on desktop */}
-          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-[#2e2e2e] via-[#3ecf8e]/40 to-[#2e2e2e] -translate-y-1/2 z-0" />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 relative z-10">
-            {[
-              {
-                step: "01",
-                name: "Detection",
-                role: "Failure Callbacks",
-                desc: "Airflow failure plugins & dbt tests intercept exceptions the moment an assertion breaches.",
-                icon: AlertTriangle,
-                color: "text-[#ef4444]",
-                bg: "bg-[#ef4444]/10",
-              },
-              {
-                step: "02",
-                name: "Diagnosis",
-                role: "Catalog Inspection",
-                desc: "Engine queries database schemas and parses task logs using read-only diagnostic tools.",
-                icon: Bot,
-                color: "text-[#38bdf8]",
-                bg: "bg-[#38bdf8]/10",
-              },
-              {
-                step: "03",
-                name: "Sandbox Test",
-                role: "staging_sandbox",
-                desc: "Fix executed in isolated schema. Target contracts validated before touching production.",
-                icon: Layers,
-                color: "text-[#3ecf8e]",
-                bg: "bg-[#3ecf8e]/10",
-              },
-              {
-                step: "04",
-                name: "Human Review",
-                role: "Operational Console",
-                desc: "Engineers review plain-English RCA, line-by-line diff, and sandbox pass proof before approval.",
-                icon: ShieldCheck,
-                color: "text-[#f59e0b]",
-                bg: "bg-[#f59e0b]/10",
-              },
-              {
-                step: "05",
-                name: "Recovery",
-                role: "Atomic Deploy",
-                desc: "Approved patch is applied atomically, pipeline automatically resumes, and incident resolves.",
-                icon: Zap,
-                color: "text-[#3ecf8e]",
-                bg: "bg-[#3ecf8e]/10",
-              },
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                className="p-5 rounded-[8px] bg-[#1c1c1c] border border-[#2e2e2e] hover:border-[#3ecf8e]/40 transition-all flex flex-col justify-between space-y-4"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-mono text-xs font-bold text-[#707070]">
-                      {item.step}
-                    </span>
-                    <div className={`p-2 rounded-[6px] ${item.bg}`}>
-                      <item.icon className={`size-4 ${item.color}`} />
-                    </div>
-                  </div>
-                  <h3 className="font-semibold text-sm text-[#ededed]">{item.name}</h3>
-                  <div className="text-[11px] font-mono text-[#3ecf8e] mt-0.5">{item.role}</div>
-                  <p className="text-xs text-[#a0a0a0] mt-2 leading-relaxed">
-                    {item.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CORE CAPABILITIES / 6 PILLARS */}
-      <section id="features" className="py-20 px-4 sm:px-8 border-t border-[#2e2e2e] bg-[#141414]">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c1c1c] border border-[#2e2e2e] text-xs text-[#3ecf8e] mb-3">
-              <Shield className="size-3" />
-              <span>Production-Grade Reliability</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-[#ededed]">
-              Data Reliability Without the 3 AM Fire Drills
-            </h2>
-            <p className="mt-3 text-xs sm:text-sm text-[#a0a0a0]">
-              Built with defense-in-depth principles to satisfy strict enterprise compliance and data governance standards.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              {
-                icon: Cpu,
-                title: "Empirical Root Cause Analysis",
-                desc: "No hallucinated explanations. DataGuardian correlates Airflow tracebacks, PostgreSQL information_schema catalogs, and dbt manifest ASTs to guarantee evidence-backed diagnoses.",
-                tag: "LangGraph Engine",
-              },
-              {
-                icon: Layers,
-                title: "Zero-Downtime Staging Sandbox",
-                desc: "Proposed SQL models and schema migrations are verified inside an air-gapped staging_sandbox schema. Production tables are never touched until tests 100% pass.",
-                tag: "Air-Gapped Isolation",
-              },
-              {
-                icon: ShieldCheck,
-                title: "Human-in-the-Loop Governance",
-                desc: "Maintain complete operational control. Engineers review plain-English root causes, side-by-side git diffs, and validation assertions before one-click approval.",
-                tag: "HITL Control",
-              },
-              {
-                icon: Boxes,
-                title: "Model Context Protocol (MCP)",
-                desc: "Exposes PostgreSQL, dbt, and Airflow as standardized MCP tools. Connect your favorite agentic editors—Claude Desktop, Cursor, and VS Code—directly to the data warehouse.",
-                tag: "Open Standard",
-              },
-              {
-                icon: GitBranch,
-                title: "Automated Lineage & Blast Radius",
-                desc: "Maps downstream impacts from raw source tables to intermediate staging views and business reporting marts (fact_orders, fact_revenue) instantly.",
-                tag: "DAG Visibility",
-              },
-              {
-                icon: Lock,
-                title: "Atomic Rollback & Versioning",
-                desc: "Every automated fix generates pre-flight checkpoints. If an unforeseen downstream impact occurs, roll back the entire dbt model to its previous state with a single button.",
-                tag: "Audit Trail",
-              },
-            ].map((card, idx) => (
-              <div
-                key={idx}
-                className="p-6 rounded-[8px] bg-[#1c1c1c] border border-[#2e2e2e] hover:border-[#363636] hover:bg-[#1f1f1f] transition-all flex flex-col justify-between space-y-4 group"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="size-9 rounded-[6px] bg-[#232323] border border-[#2e2e2e] flex items-center justify-center text-[#3ecf8e] group-hover:scale-110 transition-transform">
-                      <card.icon className="size-4" />
-                    </div>
-                    <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-[#232323] text-[#a0a0a0] border border-[#2e2e2e]">
-                      {card.tag}
-                    </span>
-                  </div>
-                  <h3 className="font-semibold text-sm text-[#ededed] mb-2">{card.title}</h3>
-                  <p className="text-xs text-[#a0a0a0] leading-relaxed">{card.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* MODEL CONTEXT PROTOCOL & CODE SHOWCASE */}
-      <section id="mcp" className="py-20 px-4 sm:px-8 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-5 space-y-5">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c1c1c] border border-[#2e2e2e] text-xs text-[#3ecf8e]">
-              <Code2 className="size-3" />
-              <span>Native MCP 2.x Integration</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#ededed]">
-              Standardized Tool Protocol for Claude &amp; Cursor
-            </h2>
-            <p className="text-xs sm:text-sm text-[#a0a0a0] leading-relaxed">
-              DataGuardian implements the open <strong>Model Context Protocol (MCP)</strong>.
-              External AI clients like Claude Desktop or Cursor can connect directly to DataGuardian&apos;s MCP servers to inspect tables, review Airflow task health, and execute dbt compilation checks securely.
-            </p>
-
-            <div className="space-y-2.5 pt-2 text-xs">
-              <div className="flex items-center gap-2 text-[#ededed]">
-                <CheckCircle2 className="size-4 text-[#3ecf8e]" />
-                <span>Read-only safety bounds on operational production queries</span>
-              </div>
-              <div className="flex items-center gap-2 text-[#ededed]">
-                <CheckCircle2 className="size-4 text-[#3ecf8e]" />
-                <span>Zero-credential leak via standardized process I/O &amp; stdio</span>
-              </div>
-              <div className="flex items-center gap-2 text-[#ededed]">
-                <CheckCircle2 className="size-4 text-[#3ecf8e]" />
-                <span>Instant drop-in config for Claude Desktop and Cursor</span>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 text-xs font-semibold text-[#3ecf8e] hover:text-[#00c573]"
-              >
-                <span>Explore live MCP endpoints in Console</span>
-                <ArrowRight className="size-3.5" />
-              </Link>
+      <main id="main">
+        <section className={styles.hero}>
+          <div className={styles.eyebrow}><span className={styles.dot} />OPEN-SOURCE DATAOPS / LOCAL PROTOTYPE</div>
+          <div className={styles.heroGrid}>
+            <h1>Understand<br />pipeline failures.<br /><span>Review the fix.</span></h1>
+            <div className={styles.heroAside}>
+              <p>DataGuardian investigates data issues, proposes dbt model changes, and brings the evidence together for an engineer to review.</p>
+              <div className={styles.actions}><Link href="/dashboard" className={styles.primary}>Explore the demo <ArrowRight size={17} /></Link><a href={github} className={styles.textLink}>View on GitHub <ArrowUpRight size={15} /></a></div>
+              <p className={styles.heroNote}>Built around an e-commerce warehouse.<br />Designed to make the reasoning visible.</p>
             </div>
           </div>
-
-          <div className="lg:col-span-7">
-            <div className="rounded-[8px] bg-[#1c1c1c] border border-[#2e2e2e] overflow-hidden shadow-2xl">
-              {/* Tabs */}
-              <div className="h-10 px-4 bg-[#1f1f1f] border-b border-[#2e2e2e] flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  {[
-                    { id: "mcp", label: "mcp_config.json" },
-                    { id: "agent", label: "remediation_agent.py" },
-                    { id: "dbt", label: "stg_customers.sql" },
-                    { id: "docker", label: "docker-compose.yml" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveCodeTab(tab.id as "mcp" | "agent" | "dbt" | "docker")}
-                      className={`px-3 py-1 rounded-[4px] text-xs font-mono transition-colors cursor-pointer ${
-                        activeCodeTab === tab.id
-                          ? "bg-[#282828] text-[#3ecf8e] border border-[#3ecf8e]/30"
-                          : "text-[#707070] hover:text-[#ededed]"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => handleCopy(codeSnippets[activeCodeTab], `code-${activeCodeTab}`)}
-                  className="p-1 text-[#707070] hover:text-[#ededed] transition-colors"
-                  title="Copy snippet"
-                >
-                  {copiedCode === `code-${activeCodeTab}` ? (
-                    <Check className="size-3.5 text-[#3ecf8e]" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                </button>
+          <div className={styles.previewHeading}><span><span className={styles.dot} /> AN INCIDENT, WITH CONTEXT</span><span className={styles.demoBadge}>Demo data · illustrative review</span></div>
+          <div className={styles.preview}>
+            <aside className={styles.incidentSidebar}>
+              <div className={styles.mono}>INC_SCHEMA_DRIFT_DEMO</div>
+              <h2>A column changed.<br />{" "}A model broke.</h2>
+              <span className={styles.reviewBadge}>Awaiting engineer review</span>
+              <dl><div><dt>Pipeline</dt><dd>ecommerce_pipeline</dd></div><div><dt>Source</dt><dd>raw.customers</dd></div><div><dt>Affected model</dt><dd>stg_customers</dd></div></dl>
+              <div className={styles.evidence}><span className={styles.smallLabel}>OBSERVED CHANGE</span><code>customer_zip_code_prefix</code><ArrowRight size={14} /><code>postal_code_drifted</code></div>
+            </aside>
+            <div className={styles.reviewPanel}>
+              <div className={styles.panelHeader}><span><GitBranch size={15} /> Proposed model change</span><span className={styles.mono}>stg_customers.sql</span></div>
+              <p className={styles.diagnosis}>The source column was renamed. The staging model still references its previous name. Update the reference and preserve the output alias.</p>
+              <div className={styles.diff} aria-label="Illustrative SQL diff: replace the old source column with postal_code_drifted">
+                <div className={styles.codeLine}><span>01</span><code>select</code></div>
+                <div className={styles.codeLine}><span>02</span><code>    customer_id,</code></div>
+                <div className={`${styles.codeLine} ${styles.removed}`}><Minus size={12} /><code>    customer_zip_code_prefix as zip_code,</code></div>
+                <div className={`${styles.codeLine} ${styles.added}`}><Plus size={12} /><code>    postal_code_drifted as zip_code,</code></div>
+                <div className={styles.codeLine}><span>04</span><code>    customer_city as city</code></div>
+                <div className={styles.codeLine}><span>05</span><code>from raw.customers</code></div>
               </div>
-
-              {/* Code display */}
-              <pre className="p-4 text-xs font-mono text-[#a0a0a0] leading-relaxed overflow-x-auto max-h-[340px]">
-                <code>{codeSnippets[activeCodeTab]}</code>
-              </pre>
+              <div className={styles.previewFooter}><span><Check size={15} /> Example check: expected columns present</span><Link href="/dashboard">Inspect demo incident <ArrowUpRight size={14} /></Link></div>
             </div>
           </div>
-        </div>
-      </section>
+          <p className={styles.caption}>01 / A sample review, not a live incident. The hosted demo has no connected backend or database.</p>
+        </section>
 
-      {/* COMPARISON TABLE: TRADITIONAL VS DATAGUARDIAN */}
-      <section id="comparison" className="py-20 px-4 sm:px-8 border-t border-[#2e2e2e] bg-[#141414]">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#ededed]">
-              Automated Remediation vs. Traditional Alerting
-            </h2>
-            <p className="mt-2 text-xs sm:text-sm text-[#a0a0a0]">
-              Alerts notify you after damage is done. DataGuardian isolates and remedies failures automatically.
-            </p>
+        <section id="how-it-works" className={styles.workflow}>
+          <div className={styles.sectionIntro}><span className={styles.eyebrow}>01 / THE WORKFLOW</span><h2>From a failed check<br />to an informed decision.</h2><p>Automation gathers the context.<br />An engineer keeps the final say.</p></div>
+          <ol className={styles.steps}>{steps.map(([name, description], i) => <li key={name}><span className={styles.stepNumber}>0{i + 1}</span><h3>{name}</h3><p>{description}</p>{i < 4 && <ArrowRight size={17} className={styles.stepArrow} aria-hidden="true" />}</li>)}</ol>
+        </section>
+
+        <section className={styles.walkthrough} id="walkthrough">
+          <div className={styles.caseIntro}><span className={styles.eyebrow}>02 / A CLOSER LOOK</span><h2>Schema drift.<br /><em>Follow the evidence.</em></h2><p>A customer source changes upstream. Here is what an investigation should bring into view before anyone edits the model.</p><a href={`${github}/tree/main/agent`} className={styles.textLink}>Read the investigation code <ArrowUpRight size={15} /></a></div>
+          <div className={styles.caseNotes}>
+            <article><span>01</span><div><h3>The failure</h3><p>The model expects <code>customer_zip_code_prefix</code>. The source now exposes <code>postal_code_drifted</code>.</p></div></article>
+            <article><span>02</span><div><h3>The evidence</h3><p>Compare the actual source columns with the model SQL. Inspect sample rows and downstream dependencies to understand the change.</p></div></article>
+            <article><span>03</span><div><h3>The proposed change</h3><p>Reference the renamed field while keeping <code>zip_code</code> as the output name. The diff above illustrates this change; generated proposals still need review.</p></div></article>
+            <article><span>04</span><div><h3>The decision</h3><p>Check the sandbox results and the meaning of the renamed field. Approve a suitable patch, or reject it for further investigation.</p></div></article>
           </div>
+        </section>
 
-          <div className="rounded-[8px] bg-[#1c1c1c] border border-[#2e2e2e] overflow-hidden">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[#2e2e2e] bg-[#1f1f1f] text-xs text-[#a0a0a0]">
-                  <th className="py-3 px-4 font-medium">Operational Metric</th>
-                  <th className="py-3 px-4 font-medium text-[#ef4444]">Traditional Monitoring</th>
-                  <th className="py-3 px-4 font-medium text-[#3ecf8e]">DataGuardian Platform</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#2e2e2e] text-[#a0a0a0]">
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#ededed]">Incident Discovery</td>
-                  <td className="py-3.5 px-4 text-[#ef4444]">End-users report broken dashboards or Slack flood</td>
-                  <td className="py-3.5 px-4 text-[#3ecf8e]">Automated intercept at Airflow execution boundary</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#ededed]">Root Cause Analysis</td>
-                  <td className="py-3.5 px-4 text-[#ef4444]">2 to 4 hours manually grepping logs and SQL schemas</td>
-                  <td className="py-3.5 px-4 text-[#3ecf8e]">Under 30s empirical AST and database catalog analysis</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#ededed]">Fix Verification</td>
-                  <td className="py-3.5 px-4 text-[#ef4444]">Untested hotfixes pushed straight to production</td>
-                  <td className="py-3.5 px-4 text-[#3ecf8e]">100% verified in isolated staging_sandbox schema</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#ededed]">Governance</td>
-                  <td className="py-3.5 px-4 text-[#ef4444]">Ad-hoc commits without structured audit trails</td>
-                  <td className="py-3.5 px-4 text-[#3ecf8e]">Human-in-the-loop review with diffs and audit logs</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 px-4 font-medium text-[#ededed]">AI Tool Protocol</td>
-                  <td className="py-3.5 px-4 text-[#ef4444]">Proprietary brittle integrations per vendor</td>
-                  <td className="py-3.5 px-4 text-[#3ecf8e]">Native Model Context Protocol (MCP 2.x)</td>
-                </tr>
-              </tbody>
-            </table>
+        <section className={styles.architecture} id="architecture">
+          <div className={styles.sectionIntro}><span className={styles.eyebrow}>03 / UNDER THE HOOD</span><h2>Familiar tools.<br />One review workflow.</h2><p>The pipeline moves data.<br />DataGuardian explains what went wrong.</p></div>
+          <div className={styles.pipeline} aria-label="Data pipeline"><span>CSV sources</span><ArrowRight size={16} /><span>raw</span><ArrowRight size={16} /><span>staging</span><ArrowRight size={16} /><span>core</span><ArrowRight size={16} /><span>dbt tests</span></div>
+          <div className={styles.stack}>{stack.map(([name, role, description]) => <article key={name}><h3>{name}</h3><span className={styles.mono}>{role}</span><p>{description}</p></article>)}</div>
+          <div className={styles.integrations}><span className={styles.smallLabel}>OPTIONAL CONNECTIONS</span><p><strong>Airflow</strong> schedules ingestion and transformation tasks and records failures. <strong>MCP servers</strong> expose PostgreSQL, dbt, and Airflow diagnostic tools to compatible AI clients.</p></div>
+        </section>
+
+        <section className={styles.status} id="project-status">
+          <div><span className={styles.eyebrow}>04 / PROJECT STATUS</span><h2>A working prototype.<br />Clear boundaries.</h2><p>Explore the interface online, or run the stack locally to investigate incidents against a real PostgreSQL warehouse.</p><a href={`${github}#quickstart`} className={styles.textLink}>Run it locally <ArrowUpRight size={15} /></a></div>
+          <div className={styles.statusNotes}>
+            <details open><summary>What is implemented?<Plus size={15} /></summary><p>Quality checks, evidence gathering, RCA, SQL patch proposals, sandbox assertions, and engineer approval or rejection. RCA supports an optional LLM with deterministic fallback.</p></details>
+            <details open><summary>What does the hosted demo show?<Plus size={15} /></summary><p>Sample incident data in the browser. No backend or database is connected to this deployment. Demo results do not represent live warehouse checks.</p></details>
+            <details><summary>What remains before production use?<Plus size={15} /></summary><p>Pipeline recovery is simulated. Workflow state is held in memory. The sandbox is a schema in the same warehouse. Durable state, stronger validation gates, access controls, and real recovery integration remain future work.</p></details>
           </div>
-        </div>
-      </section>
-
-      {/* FREQUENTLY ASKED QUESTIONS */}
-      <section id="faq" className="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#ededed]">
-            Frequently Asked Questions
-          </h2>
-          <p className="mt-2 text-xs sm:text-sm text-[#a0a0a0]">
-            Everything you need to know about autonomous DataOps safety and architecture.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          {[
-            {
-              q: "How does DataGuardian ensure fixes never corrupt production data?",
-              a: "DataGuardian enforces strict defense-in-depth isolation. All diagnostic tools operate with read-only database grants. Proposed SQL models and schema migrations are executed strictly inside an air-gapped PostgreSQL schema (`staging_sandbox`). Fixes are never merged until assertions pass and a human engineer explicitly approves the change via the console.",
-            },
-            {
-              q: "Which orchestration engines and warehouse platforms are supported?",
-              a: "DataGuardian integrates natively with Apache Airflow (2.x), dbt (Core & Cloud), and PostgreSQL. Adapters for Snowflake, Databricks, BigQuery, and Prefect follow the exact same MCP-compliant schema inspection protocol.",
-            },
-            {
-              q: "Can I run DataGuardian completely self-hosted?",
-              a: "Yes. DataGuardian can be deployed 100% on-premise using Docker Compose or Kubernetes. It connects directly to your existing database and Airflow instance without requiring telemetry or proprietary data to leave your private cloud.",
-            },
-            {
-              q: "How does the Model Context Protocol (MCP) integration work?",
-              a: "DataGuardian ships with first-class MCP 2.x servers for PostgreSQL, dbt, and Airflow. When configured in Claude Desktop or Cursor, external AI models can run diagnostic queries and examine warehouse structures natively through standard MCP client tools.",
-            },
-          ].map((item, idx) => {
-            const isOpen = openFaq === idx;
-            return (
-              <div
-                key={idx}
-                className="rounded-[6px] bg-[#1c1c1c] border border-[#2e2e2e] overflow-hidden transition-colors"
-              >
-                <button
-                  onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  className="w-full p-4 text-left flex items-center justify-between text-xs sm:text-sm font-semibold text-[#ededed] hover:text-[#3ecf8e] transition-colors cursor-pointer"
-                >
-                  <span>{item.q}</span>
-                  <ChevronDown
-                    className={`size-4 text-[#707070] transition-transform ${
-                      isOpen ? "rotate-180 text-[#3ecf8e]" : ""
-                    }`}
-                  />
-                </button>
-                {isOpen && (
-                  <div className="px-4 pb-4 text-xs text-[#a0a0a0] leading-relaxed border-t border-[#262626] pt-3">
-                    {item.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* PRE-FOOTER CALL TO ACTION */}
-      <section className="py-16 px-4 sm:px-8 border-t border-[#2e2e2e] bg-[#141414] relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[250px] bg-[#3ecf8e]/10 blur-[100px] pointer-events-none" />
-
-        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
-          <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-[#ededed]">
-            Continuous Reliability for Your Data Stack
-          </h2>
-          <p className="text-xs sm:text-sm text-[#a0a0a0] max-w-xl mx-auto leading-relaxed">
-            Eliminate pipeline downtime and manual debugging. Launch the operational console to explore real-time triage and automated remediation.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link
-              id="cta-launch-console-btn"
-              href="/dashboard"
-              className="h-10 px-6 rounded-[6px] bg-[#3ecf8e] hover:bg-[#00c573] text-[#0e0e0e] text-sm font-semibold flex items-center gap-2 shadow-lg shadow-[#3ecf8e]/20 transition-all cursor-pointer"
-            >
-              <span>Open Operational Console</span>
-              <ArrowRight className="size-4" />
-            </Link>
-
-            <a
-              href="https://github.com/GitItDone19/data-guardian"
-              target="_blank"
-              rel="noreferrer"
-              className="h-10 px-4 rounded-[6px] bg-[#232323] hover:bg-[#282828] border border-[#2e2e2e] text-sm font-medium text-[#ededed] flex items-center gap-2 transition-colors cursor-pointer"
-            >
-              <GitBranch className="size-4 text-[#a0a0a0]" />
-              <span>GitHub Repository</span>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-[#2e2e2e] bg-[#111111] py-8 px-4 sm:px-8 text-xs text-[#707070]">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="size-5 rounded-[4px] bg-[#3ecf8e] flex items-center justify-center text-[#0e0e0e]">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="size-3">
-                <path d="M12 2L2 19.5h9L9 22l13-10h-9l3-10z" />
-              </svg>
-            </div>
-            <span className="font-semibold text-xs text-[#ededed]">DataGuardian</span>
-            <span className="text-[#404040]">|</span>
-            <span>DataOps Reliability Platform</span>
-          </div>
-
-          <div className="flex items-center gap-5 text-[11px]">
-            <Link href="/dashboard" className="hover:text-[#ededed] transition-colors">
-              Console
-            </Link>
-            <a href="https://github.com/GitItDone19/data-guardian#readme" target="_blank" rel="noreferrer" className="hover:text-[#ededed] transition-colors">
-              Documentation
-            </a>
-            <a href="https://github.com/GitItDone19/data-guardian" target="_blank" rel="noreferrer" className="hover:text-[#ededed] transition-colors">
-              GitHub
-            </a>
-          </div>
-
-          <div>
-            <span>Apache Airflow • dbt Core • PostgreSQL • Model Context Protocol</span>
-          </div>
-        </div>
-      </footer>
+        </section>
+        <section className={styles.closing}><div><span className={styles.eyebrow}>LESS GUESSWORK. MORE CONTEXT.</span><h2>See what goes into a fix.</h2></div><Link href="/dashboard" className={styles.primary}>Explore the demo <ArrowRight size={17} /></Link></section>
+      </main>
+      <footer className={styles.footer}><Link href="/" className={styles.brand}><span className={styles.logo} aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 19.5h9L9 22l13-10h-9l3-10z" /></svg></span>DataGuardian</Link><span>An open-source data engineering project.</span><div><a href={`${github}#readme`}>Documentation</a><a href={github}>GitHub <ArrowUpRight size={13} /></a></div></footer>
     </div>
   );
 }

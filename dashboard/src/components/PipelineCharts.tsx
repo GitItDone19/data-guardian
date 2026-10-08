@@ -81,6 +81,7 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function PipelineCharts() {
   return (
     <div className="space-y-6">
+      <p className="workspace-chart-note">ILLUSTRATIVE ANALYTICS / Sample values, not live measurements.</p>
       {/* Top 2 Charts: Runtime SLA Trend + MTTR Benchmark */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Chart 1: DAG Runtime Duration & SLA Compliance */}
